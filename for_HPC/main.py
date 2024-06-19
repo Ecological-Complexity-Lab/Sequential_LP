@@ -5,7 +5,7 @@ import numpy as np
 import TOLP as tolp
 import os
 import sys
-from multiprocessing import Pool
+#from multiprocessing import Pool
 
 # --- functions --------
 def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, layer_to_predict):
@@ -54,13 +54,14 @@ def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, laye
 # --- argument handling ------
 # expected arguments:
 # 1. filename - must
-# 2. flow variable (q) - has default
-# 3. search varianle (u) - has default
+# 2. flow variable (q - n layers used to predicte) - has default
+# 3. search varianle (u - n layers in a stack ) - has default
 # 4. predicted later index - has default
 # set defaults
 q = 3
 u = 6
 target = 7
+file_path = "for_HPC/WinfreeYYc_mln.csv"
 
 n_args = len(sys.argv)
 print(n_args)
@@ -84,6 +85,7 @@ assert os.path.isfile(file_path), "First argument must point to a mln file."
 
 # --- Run -------
 run_partially_observed_temporal_lp(file_path, q, u, target)
+
 
 
 

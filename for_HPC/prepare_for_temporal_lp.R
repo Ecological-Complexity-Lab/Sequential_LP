@@ -4,7 +4,7 @@ library(tidyverse)
 # check dryad database:
 
 # read
-data <- read.csv("OIK-07303_database.csv")
+data <- read.csv("for_HPC/OIK-07303_database.csv")
 
 # how many studies?
 studies <- unique(data$study)

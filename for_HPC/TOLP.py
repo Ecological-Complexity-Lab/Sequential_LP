@@ -571,6 +571,9 @@ def creat_numpy_files(dir_results, df_ho, df_tr):
            'short_path', 'deg_assort', 'transit_net', 'diam_net',
            'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']  
 
+    feature_set_bi = []
+
+
     X_test_heldout = df_ho
     y_test_heldout = np.array(df_ho.TP)
     
@@ -764,11 +767,16 @@ def heldout_performance(path_to_data, path_to_results, n_depth, n_est):
     auc , precision, recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
     """
     
+    #n_depth = 5 # here is a sample search space
+    #n_est = 25 # here is a sample search space
+    #path_to_data = 'for_HPC/feature_metrices/WinfreeYYc_mln'
+    #path_to_results = "for_HPC/results/WinfreeYYc_mln"
+
+
     if not os.path.isdir(path_to_results):
         os.mkdir(path_to_results)
     f = open(path_to_results + '/RF_Best_metrics.txt','w')
-    #path_to_data = './feature_metrices'
-    
+
     # read data
     X_train = np.load(path_to_data+'/X_Eseen.npy')
     y_train = np.load(path_to_data+'/y_Eseen.npy')
@@ -801,7 +809,8 @@ def heldout_performance(path_to_data, path_to_results, n_depth, n_est):
      
     precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None)
        
-    
+    np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',') # TODO check this
+    np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',') # TODO check this
     
     f.write('heldout_AUC = '+ str(auc_measure)+'\n')
     f.write('heldout_precision = '+ str(precision_total)+'\n')
@@ -814,7 +823,7 @@ def heldout_performance(path_to_data, path_to_results, n_depth, n_est):
     print("AUPRC: " +str(np.round(auprc,2)))
     print("precision: " +str(np.round(precision_total[0],2)))
     print("recall: " +str(np.round(recall_total[0],2)))
-    print("got here")
+    print("got here1")
     print(auc_measure, auprc, precision_total[0], recall_total[0])
     return auprc, auc_measure, precision_total[0], recall_total[0]
 
@@ -979,7 +988,7 @@ def topol_stacking(edges_orig):
     
     
     #### perform model selection #### 
-    auprc, auc , precision, recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, precision, recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
     return auprc, auc, precision, recall
 
    
@@ -1673,7 +1682,7 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     print("AUPRC: " +str(np.round(auprc,2)))
     print("precision: " +str(np.round(precision_total[0],2)))
     print("recall: " +str(np.round(recall_total[0],2)))
-    print("got here")
+    print("got here2")
     print(auc_measure, auprc, precision_total[0], recall_total[0])
     return auprc, auc_measure, precision_total[0], recall_total[0], feature_importance
 
