@@ -35,13 +35,14 @@ def gen_tr_ho_networks(A_orig, alpha, alpha_):
     Input and Parameters:
     -------
     A_orig: the original adjacency matrix
+    alpha : the sample probability used for sampling from the original matrix to create the holdout matrix
+    alpha_ : the sample probability used for sampling from the holdout matrix to create the training matrix
 
     Returns:
     -------
-    A_ho : the holdout adjacency matrix
-    A_tr : training adjacency matrix
-    alpha : the sample probability used for sampling from the original matrix to create the holdout matrix
-    alpha_ : the sample probability used for sampling from the holdout matrix to create the training matrix
+    A_ho : the holdout adjacency matrix - removing <alpha> links from A_orig
+    A_tr : training adjacency matrix - removing <alpha_> links from A_ho
+
 
     Examples:
     -------
@@ -451,8 +452,8 @@ def model_selection(path_to_data, path_to_results, n_depths, n_ests):
 
     Input and Parameters:
     -------
-    path_to_data: path to held out featute matrices 
-    path_to_results: path to save model performance ast txt file
+    path_to_data: path to held out feature matrices 
+    path_to_results: path to save model performance as txt file - for each combination of clasification params
     n_depth: a list of max_depths for random forest parameter
     n_est: a list of n_estimators for random forest parameter
 
@@ -1025,6 +1026,25 @@ def creat_full_set_temporal(df_t,df_f,predict):
 def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
     
     """ 
+    Uses feature data to cross-validate, over-sample and fit, then save numpy files with features for later use.
+
+    Input and Parameters:
+    -------
+    dir_results: path location to save numpy files
+    df_tr: dataframe of features/ground truth for positive and negative class for model selection
+    df_ho: dataframe of features/ground truth for positive and negative class for held out model performance
+    predict: layer index to predict
+
+    Returns:
+    -------
+    save numpy files of X_train_i and y_train_i for all folds, also X_Eseen/X_Eunseen, y_Eseen/y_Eunseen in dir_results
+
+    Example:
+    -------
+    creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict)
+    """
+    
+    """ 
     This functiion multiplied the column number and attache verything that is important in the function
     """
     
@@ -1044,15 +1064,13 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
     full_feat_set = [None] * ((predict)*len(feature_set))
     len_of_feat = len(feature_set)
     
+    # fill the list with one feature set for each layer stack
     for k in range(len_of_feat):
         full_feat_set[k] = feature_set[k]
-    
     for j in range(1,predict):  
         for i in range (len_of_feat*j, len_of_feat*(j+1)):
             full_feat_set[i] = feature_set[i-len_of_feat*j]+"_"+str(j)
         
-    #print(full_feat_set)
-    
     
     X_test_heldout = df_ho
     y_test_heldout = np.array(df_ho.TP)
@@ -1061,6 +1079,7 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
     X_train_orig = df_tr
     y_train_orig = np.array(df_tr.TP)
 
+    # cross validation 
     skf = StratifiedKFold(n_splits=5,shuffle=True)
     skf.get_n_splits(X_train_orig, y_train_orig)
 
@@ -1100,7 +1119,7 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
         nFold = nFold + 1
 
     seen = X_train_orig
-    y_seen = seen.TP
+    y_seen = seen.TP # TP - True clasification (labels of 1 or 0)
     X_seen = seen.loc[:,full_feat_set]
     X_seen.fillna(X_seen.mean(), inplace=True)  
 
@@ -1130,31 +1149,32 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
 
     Input and Parameters:
     -------
-    path_to_data: path to held out featute matrices 
+    path_to_data: path to held out feature matrices 
     path_to_results: path to save model performance ast txt file
     n_depth: max_depth for random forest parameter
     n_est: n_estimators for random forest parameter
 
     Returns:
     -------
+    auprc: 
     auc_measure: auc on heldout
     precision_total: precision of positive class on heldout
     recall_total: recall of positive class on heldout
+    feature_importance:
 
     Examples:
     -------
-    auc , precision, recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
+    results = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     """
     
     #n_depth = 5 # here is a sample search space
     #n_est = 25 # here is a sample search space
-    #path_to_data = 'for_HPC/feature_metrices/WinfreeYYc_mln'
-    #path_to_results = "for_HPC/results/WinfreeYYc_mln"
+    #path_to_data = 'feature_metrices/WinfreeYYc_mln'
+    #path_to_results = "results/WinfreeYYc_mln"
 
     if not os.path.isdir(path_to_results):
         os.mkdir(path_to_results)
     f = open(path_to_results + '/RF_Best_metrics.txt','w')
-    #path_to_data = './feature_metrices'
     
     # read data
     X_train = np.load(path_to_data+'/X_Eseen.npy')
@@ -1162,30 +1182,12 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     X_test = np.load(path_to_data+'/X_Eunseen.npy')
     y_test = np.load(path_to_data+'/y_Eunseen.npy')
     
-    
-    
-
-    col_mean = np.nanmean(X_train, axis=0)
+    # clean nan
     X_train = np.nan_to_num(X_train, nan=0, posinf=0, neginf=0)
-    #inds = np.where(np.isnan(X_train))
-    #X_train[inds] = np.take(col_mean, inds[1])
-    #print(X_train)
-    #X_train[X_train > 1e308] =  np.take(col_mean, inds[1])
-    #X_train[X_train < -1e308] =  np.take(col_mean, inds[1])
-    
-    col_mean = np.nanmean(X_test, axis=0)
     X_test = np.nan_to_num(X_test, nan=0, posinf=0, neginf=0)
-    
-    #inds = np.where(np.isnan(X_test))
-    #X_test[inds] = np.take(col_mean, inds[1])
-    #print(X_test)
-    #X_test[X_test > 1e308] =  np.take(col_mean, inds[1])
-    #X_test[X_test < -1e308] =  np.take(col_mean, inds[1])
        
     # train the model
     dtree_model = RandomForestClassifier(n_estimators=n_est,max_depth=n_depth).fit(X_train, y_train)
-    
-    
     
     # feature importance and prediction on test set 
     feature_importance = dtree_model.feature_importances_
@@ -1199,6 +1201,10 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
      
     precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None)
 
+    # Save results in files
+    print("saving prediction and probabilities in: " + path_to_results)
+    np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',')
+    np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',')
     
     f.write('heldout_AUC = '+ str(auc_measure)+'\n')
     f.write('heldout_precision = '+ str(precision_total)+'\n')
@@ -1302,19 +1308,20 @@ def sample_true_false_edges_temporal(A_orig, A_train, predict_num, name):
 def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):  
     
     """ 
-    
+    A : matrix representing the target layer to be predicted
+    A_ho : list of holdout matrices, for each layer + target layer
+    A_tr : list of full layer matrices
+    A_tr_new : list of matrices with partial links for training (each + target)
+    predict_num : number of layers in a stack
+    name : data file name (and identifier)
     """
     
     Nsamples = 10000
     nsim_id = 0
     #np.random.seed(nsim_id)
     num_sample_edges = math.ceil(Nsamples/(len(A_tr)-predict_num))-1
-    
-    
-    A_edge_t = []
-    A_edge_f = []
-    
-            
+
+    # prepare for the stackes of layers
     for i in range(predict_num, len(A_tr)):
         A_diff = A_tr[i] - A_ho[i-predict_num]
         nodes, edges = adj_to_nodes_edges(A_diff)
@@ -1334,11 +1341,10 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
             os.mkdir("./edge_tf_tr/")
         except:
             print("")
-        #if not os.path.isdir("./edge_tf_tr/"):
-            #os.mkdir("./edge_tf_tr/")
         np.savetxt("./edge_tf_tr/edge_t_{}".format(i)+"_"+str(name)+".txt",temp_edge_t,fmt='%u')
         np.savetxt("./edge_tf_tr/edge_f_{}".format(i)+"_"+str(name)+".txt",temp_edge_f,fmt='%u')
 
+    # sample final layer 
     A_diff = A_ho[-1] - A_tr_new[-1]
     e_diff = sparse.find(sparse.triu(A_diff,1)) # true candidates
     A_ho_aux = -1*A_ho[-1] + 1
@@ -1346,7 +1352,6 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
     Nsamples = 10000 # number of samples
     edge_t = [] # list of true edges (positive samples)
     edge_f = [] # list of false edges (negative samples)
-    train_final = []
     
     for ll in range(Nsamples):
         edge_t_idx_aux = np.random.randint(len(e_diff[0]))
@@ -1358,12 +1363,10 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
         os.mkdir("./edge_tf_tr/")
     except:
         print("")
-    #if not os.path.isdir("./edge_tf_tr/"):
-        #os.mkdir("./edge_tf_tr/")
     np.savetxt("./edge_tf_tr/edge_t_final"+"_"+str(name)+".txt",edge_t,fmt='%u')
     np.savetxt("./edge_tf_tr/edge_f_final"+"_"+str(name)+".txt",edge_f,fmt='%u')
     
-    
+    # sample just from the last layer
     A_diff = A - A_ho[-1]
     e_diff = sparse.find(sparse.triu(A_diff,1)) # true candidates
     A_orig_aux = -1*A + 1
@@ -1650,8 +1653,8 @@ def heldout_performance(path_to_data, path_to_results, n_depth, n_est):
      
     precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None)
        
-    np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',') # TODO check this
-    np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',') # TODO check this
+    np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',') 
+    np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',') 
     
     f.write('heldout_AUC = '+ str(auc_measure)+'\n')
     f.write('heldout_precision = '+ str(precision_total)+'\n')
@@ -2071,8 +2074,6 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
     
     
     
-    
-    
     column_name = list(df_t_tr_.columns)
     
     for j in range(1,predict_num+1):  
@@ -2147,26 +2148,20 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     try:
         os.mkdir("./feature_metrices/")
     except:
-        print("")
+        print(".")
     try:
         os.mkdir("./results/")
     except:
-        print("")
+        print(".")
+    
 
-    
-    row_tr = []
-    col_tr = []
-    data_aux_tr = []
-    A_tr = []
-    
     edge_t_tr = []
     edge_f_tr = []
     df_f_tr = [] 
     df_t_tr = []
     
     
-    #### load target layer A
-    
+    #### convert target layer A to matrix
     mymax= mxx(edges_orig)
     num_nodes = int(max( np.max(target_layer), mymax)) +1
     row = np.array(target_layer)[:,0]
@@ -2178,7 +2173,12 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     A[A>0] = 1 
     A = A.todense()
     
+    row_tr = []
+    col_tr = []
+    data_aux_tr = []
+    A_tr = []
 
+    # Make a matrix from each edgelist layer used for the prediction
     for i in range(len(edges_orig)):      
         row_tr.append(np.array(edges_orig[i])[:,0])
         col_tr.append(np.array(edges_orig[i])[:,1])
@@ -2190,11 +2190,11 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
         A_tr[i] = A_tr[i].todense()        
         
     
-    #### construct the holdout and training matriced from the original matrix
+    #### construct the holdout and training matrices from the original matrix
     alpha = 0.8 # sampling rate for holdout matrix
     alpha_ = 0.8 # sampling rate for training matrix
     
-    A_ho = []
+    A_ho = [] # matrixes represent the edges to holdout while training
     A_tr_new = []
     
     
@@ -2210,9 +2210,9 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     A_ho.append(A_hold_)
     
     ### Now the training and hold out matrix list is complete, we try to create the corresponding edge lists for each.
-    sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name)
+    sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num, name)
     
-    
+    # run over the stacks and generate features (this is a long step)
     for i in range(predict_num, len(A_tr)):
         temp_true_edges = np.loadtxt("./edge_tf_tr/edge_t_{}".format(i)+"_"+str(name)+".txt").astype('int')
         edge_t_tr.append(temp_true_edges)
@@ -2235,9 +2235,8 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
         df_f_tr.append(df_temp)
         df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num])  
         df_t_tr.append(df_temp)
-
     
-   
+    # generate features for the final stack (training)
     edge_t_tr_final= np.loadtxt("./edge_tf_tr/edge_t_final"+"_"+str(name)+".txt").astype('int')
     edge_f_tr_final = np.loadtxt("./edge_tf_tr/edge_f_final"+"_"+str(name)+".txt").astype('int')
     A_tr_temp_ = A_tr[-(predict_num):]
@@ -2248,7 +2247,7 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     df_f_tr.append(df_f_temp)
     df_t_tr.append(df_t_temp)
     
-    
+    # generate features for the final stack (holdout data)
     edge_t_ho= np.loadtxt("./edge_tf_true/edge_t"+"_"+str(name)+".txt").astype('int')
     edge_f_ho= np.loadtxt("./edge_tf_true/edge_f"+"_"+str(name)+".txt").astype('int')
     
@@ -2277,11 +2276,6 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     for j in range(1,predict_num+2):  
         for i in range (44*j, 44*(j+1)):
             column_name[i] = column_name[i]+"_"+str(j)
-
-    #print(df_t_tr_.columns)
-    #print(len(df_t_tr_.columns))
-    #print(column_name)
-    #print(len(column_name))
     
 
     df_t_tr_.columns = column_name
@@ -2308,7 +2302,7 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     df_t_ho.to_pickle(feat_path + 'df_t'+"_"+str(name))
     df_f_ho.to_pickle(feat_path + 'df_f'+"_"+str(name))
     
-    
+    # arrange true edges and non-edges features in a single df with true classification
     df_tr = creat_full_set_temporal(df_t_tr_, df_f_tr_, predict_num+2)
     df_ho = creat_full_set_temporal(df_t_ho, df_f_ho, predict_num+2)
 
@@ -2332,9 +2326,12 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     
     n_depth, n_est = model_selection(path_to_data, path_to_results, n_depths, n_ests)
 
-    auprc, auc, precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, precision, recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     feats = list(df_tr.columns)
     
+    # save numpy predicted edge idetities 
+    np.savetxt(path_to_results + '/predicted_edges.txt', df_ho.iloc[:,0:3], delimiter=',')
+
     return auprc, auc, precision,recall, featim, feats
     
 

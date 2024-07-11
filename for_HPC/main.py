@@ -2,13 +2,14 @@
 
 # --- include -----
 import numpy as np
+import pandas as pd
 import TOLP as tolp
 import os
 import sys
 #from multiprocessing import Pool
 
 # --- functions --------
-def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, layer_to_predict):
+def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, layer_to_predict):
     """
     this function gets the values for running tempotal link prediction using Xie's tool and runs it
 
@@ -18,7 +19,7 @@ def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, laye
 
     vaiable:
     mln_file_path - path of the CSV file containing a mln in an edge list format, with ids for nodes and layers. first row is column names.
-    flow_var - the number of layers in one stack of layers used to calculate features. q in the paper.
+    predict_num - the number of layers in one stack of layers used to calculate features. q in the paper.
     search_var - the number of temporal layers to look back from the predicted layer. u in the paper.
     """
     mln_data = np.loadtxt(mln_file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
@@ -29,7 +30,7 @@ def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, laye
     # make sure the values received make sense:
     assert layer_to_predict <= n_layers, "layer ID cannot be higher then the number of layers avaiable in the data."
     assert search_var+1 <= layer_to_predict, "Search variable (u) + 1 cannot be higher then the ID of the ."
-    assert flow_var < search_var, "Flow variable (q) must be smaller then the Search variable (u)."
+    assert predict_num < search_var, "Flow variable (q) must be smaller then the Search variable (u)."
 
     edges_orig = [] 
     for i in range(1,n_layers+1): # +1 for the range
@@ -49,20 +50,41 @@ def run_partially_observed_temporal_lp(mln_file_path, flow_var, search_var, laye
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, flow_var, name)
+    auprc, auc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
+    print("feat_imp: ", featim)
+
+    # read feature file and predictions and merge column into a single dataframe
+    memb = np.loadtxt("results/" + name + "/probabilities.txt", delimiter=",", dtype=float)
+    pred = np.loadtxt("results/" + name + "/prediction.txt", delimiter=",", dtype=int)
+    feat = np.loadtxt("results/" + name + "/predicted_edges.txt", delimiter=",", dtype=int) # per edge get nodes ids and true clasification
+    
+    # convert numpy arrays to pandas dataframes
+    memb = pd.DataFrame(memb, columns=['memb_0', 'memb_1'])
+    pred = pd.DataFrame(pred, columns=['prediction'])
+    feat = pd.DataFrame(feat, columns=['node1', 'node2', 'true_class'])
+    
+    # merge pandas columns into a single dataframe
+    edges_probs = pd.concat([feat, memb, pred], axis=1)
+
+    # save the combination dataframe to a file
+    edges_probs.to_csv("results/" + name + "/edges_membership.csv", index=False)
+
+    print("Done. ")
 
 # --- argument handling ------
 # expected arguments:
 # 1. filename - must
-# 2. flow variable (q - n layers used to predicte) - has default
-# 3. search varianle (u - n layers in a stack ) - has default
+# 2. flow variable (q - n layers in a stack) - has default
+# 3. search varianle (u - n layers used to predicte) - has default
 # 4. predicted later index - has default
+
 # set defaults
 q = 3
 u = 6
 target = 7
 file_path = "for_HPC/WinfreeYYc_mln.csv"
 
+# read user input params
 n_args = len(sys.argv)
 print(n_args)
 match n_args:
@@ -85,7 +107,4 @@ assert os.path.isfile(file_path), "First argument must point to a mln file."
 
 # --- Run -------
 run_partially_observed_temporal_lp(file_path, q, u, target)
-
-
-
 
