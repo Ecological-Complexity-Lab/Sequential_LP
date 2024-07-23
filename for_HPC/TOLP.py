@@ -953,7 +953,7 @@ def gen_topol_feats_timed(A, edge_s):
 def gen_topol_feats_temporal(A_orig, A_tr, edge_s): 
     
     """ 
-    This function generate topoligcal feature based on which layer it is
+    This function generate topological feature based on which layer it is
     It also averages out over the layers that has this edge
     and the layers that does not have this edge
     

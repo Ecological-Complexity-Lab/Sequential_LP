@@ -55,7 +55,7 @@ that prepares the example data for usage in the tool.
 
 ## Output 
 
-The resulting stats of tthe overall run are written under `results/<input_file_name>/RF_Best_metrics.txt`.
+The resulting stats of the overall run are written under `results/<input_file_name>/RF_Best_metrics.txt`.
 
 Lists of edges used in the training and holdout, for positive and negitive samples are in:
 `edge_tf_tr` and `edge_tf_true` folders
@@ -63,9 +63,9 @@ Lists of edges used in the training and holdout, for positive and negitive sampl
 Lists of features calculated for stacked layers are located under: 
 `ef_gen_ho`, `ef_gen_tr`, and `feature_metrices/<input_file_name>`
 
-Note:
-The predicted links themselves are not saved into a file.
-this mught require a change in the code located in the TOPL.py script (maybe lines 793-794)
+List of predicted links (by node index):
+`edge_membership.csv`
+It details an edge's true classification, membership probabilities and clasification by the module.
 
 
 # Source
