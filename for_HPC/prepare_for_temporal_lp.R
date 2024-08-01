@@ -1,3 +1,6 @@
+# this script reads the database from dryad and
+# prepares the data to be run in the top-seq-lp (Xie's tool)
+
 # includes:
 library(tidyverse)
 
@@ -11,7 +14,7 @@ studies <- unique(data$study)
 length(studies) # 30 studies
 
 # get one study
-stud1 <- data %>% filter(study=="Alarcon2008")
+stud1 <- data %>% filter(study == "Alarcon2008")
 
 # how many layers does it have?
 length(unique(stud1$cdate)) # 50
@@ -23,10 +26,11 @@ length(unique(stud1$sSite)) # 1
 stud1 %>% group_by(cdate) %>% summarise(n=n()) 
 
 # check layers in each study:
-for (st in studies) {
-  stud_simthirgn <- data %>% filter(study==st)
+for (st in studies) { 
+  stud_simthirgn <- data %>% filter(study == st)
   temporal_layers <- length(unique(stud_simthirgn$cdate)) # 50
-  print(paste("No. of dates in study '", st, "' : ", temporal_layers, sep = ""))
+  sited_in_study <- length(unique(stud_simthirgn$sSite)) # 50
+  print(paste("dates in study '", st, "' : ", temporal_layers, ". sites :", sited_in_study , sep = ""))
 }
 
 

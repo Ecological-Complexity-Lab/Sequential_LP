@@ -22,7 +22,7 @@ from sklearn.feature_selection import SelectFromModel
 import time
 import math
 from random import randint
-from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
+from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, matthews_corrcoef
 
 
 ###### Auxilary function ########
@@ -980,8 +980,6 @@ def gen_topol_feats_temporal(A_orig, A_tr, edge_s):
     # the feature from the target layer is always attached at the end
     # the way to ignore them or do not use them is through creat numpy files temporal
     # adjust the number of features used in that function in order to cut down the last layer's information from leaking
-
-    
     
     return df_feat, time_count
 
@@ -1198,6 +1196,7 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     cm_dt4 = confusion_matrix(y_test, dtree_predictions)
     auc_measure = roc_auc_score(y_test, dtree_proba[:,1])
     auprc = average_precision_score(y_test, dtree_proba[:,1])
+    mcc = matthews_corrcoef(y_test, dtree_predictions)
      
     precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None)
 
@@ -1206,7 +1205,9 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',')
     np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',')
     
-    f.write('heldout_AUC = '+ str(auc_measure)+'\n')
+    f.write('heldout_AUC = '+ str(auc_measure)+'\n') # area under ROC curve
+    f.write('heldout_AUPRC = '+ str(auprc)+'\n') # area under precision-recall curve
+    f.write('heldout_MCC = '+ str(mcc)+'\n') # Matthews correlation coefficient
     f.write('heldout_precision = '+ str(precision_total)+'\n')
     f.write('heldout_recall = '+ str(recall_total)+'\n')
     f.write('heldout_f_measure = '+ str(f_measure_total)+'\n')
@@ -1217,8 +1218,7 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     print("AUPRC: " +str(np.round(auprc,2)))
     print("precision: " +str(np.round(precision_total[0],2)))
     print("recall: " +str(np.round(recall_total[0],2)))
-    print("got here2")
-    print(auc_measure, auprc, precision_total[0], recall_total[0])
+
     return auprc, auc_measure, precision_total[0], recall_total[0], feature_importance
 
 def mxx(edges_orig):
@@ -2333,9 +2333,6 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     np.savetxt(path_to_results + '/predicted_edges.txt', df_ho.iloc[:,0:3], delimiter=',')
 
     return auprc, auc, precision,recall, featim, feats
-    
-
-
 
 
 
