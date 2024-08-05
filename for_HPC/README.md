@@ -68,6 +68,24 @@ List of predicted links (by node index):
 It details an edge's true classification, membership probabilities and clasification by the module.
 
 
+## Secondary usage:
+In the same folder exists a wrapper for the tool that runs a sweep across all possible q and u values, 
+and saves performance measurements. 
+
+### Input
+running process is similar to the one above, only the command will be:
+`python3 main_sweep.py example/WinfreeYYc_mln.csv <number_of_layers> <is_unipartite>` 
+or 
+`python3 main_sweep.py example/WinfreeYYc_mln.csv 7 1` 
+
+### input file format
+the same as the one for a single lp run: `layer | node_from | node_to`
+
+### output
+the same as a single run, with the addision if a new file:
+`results/<input_file_name>_sweep.csv`
+in it the performance measurments for each pair of possible q and u.
+
 # Source
 Example data paper: https://nsojournals.onlinelibrary.wiley.com/doi/full/10.1111/oik.07303
 The DB itself: https://datadryad.org/stash/dataset/doi:10.5061/dryad.qz612jmbp

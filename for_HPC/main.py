@@ -106,63 +106,9 @@ assert os.path.isfile(file_path), "First argument must point to a mln file."
 
 
 # --- Run -------
-run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
-print("Single lp run finished. ")
-
 if __name__ == "__main__":
     print("Running as main.")
+    run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+    print("Single lp run finished. ")
 
-## -- Sweep ------
-# networks:
-# for_HPC/input/CaraDonna2017_aggregated.csv -  9 layers
-# for_HPC/input/WinfreeYYc_mln.csv           -  7 layers 
-# for_HPC/input/Lara_Romero2016_penalara.csv - 12 layers
-run_sweep = False
-if run_sweep:
-    file_path = "for_HPC/input/Lara_Romero2016_penalara.csv"
-    is_unipartite = 1
-    target = 12
-    max_u = 11
-    min_q = 2
-    max_q = max_u-1
-    
-    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall"])
-    nrows=0
-    for q in range(min_q, max_q+1):
-        for u in range(q+1, max_u+1):
-            print("Running for q: ", q, " and u: ", u)
-            auprc, auc, mcc, precision, recall, _, _2 = run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
-            result_df.loc[nrows] = ["WinfreeYYc_mln", q, u, auc, auprc, mcc, precision, recall]
-            nrows = nrows+1
 
-print("Done.")
-
-def run_q_u_sweep(filepath, n_layers):
-    name = os.path.splitext(os.path.basename(filepath))[0]# file name
-    is_unipartite = 1
-    target = n_layers # we always target the last layer
-    max_u = n_layers - 1
-    min_q = 2
-    max_q = max_u-1
-    
-    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall"])
-    nrows=0
-    for q in range(min_q, max_q+1):
-        for u in range(q+1, max_u+1):
-            print("Running for q: ", q, " and u: ", u)
-            auprc, auc, mcc, precision, recall, _, _2 = run_partially_observed_temporal_lp(filepath, q, u, target, is_unipartite > 0)
-            result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall]
-            nrows = nrows+1
-    
-    return result_df
-
-resC = run_q_u_sweep("for_HPC/input/CaraDonna2017_aggregated.csv", 9)
-resW = run_q_u_sweep("for_HPC/input/WinfreeYYc_mln.csv", 7)
-resL = run_q_u_sweep("for_HPC/input/Lara_Romero2016_penalara.csv", 12)
-
-# concat the 3 dataframes into a single dataframe
-all = pd.concat([resW, resL, resC])
-
-# save the result to a file
-ouptut_file = "results/grant_sweep.csv"
-all.to_csv(ouptut_file, index=False)

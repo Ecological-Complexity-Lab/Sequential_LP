@@ -108,7 +108,7 @@ for(i in seq(1, length(dates), by = num_to_agg)){
 # prepare the network for runnings
 save_in_lp_format(complete_new_network, "CaraDonna2017_aggregated")
 
-## smaller networks: ---------------------------------------------------------------
+## smaller networks: ----------------------------------------------------------
 # First: WinfreeYYc exists already (for_HPC/WinfreeYYc_mln.csv)
 
 # Second: Lara-Romero2016
@@ -132,7 +132,7 @@ half_study <- half_study %>% select(cdate, lower, higher)
 # prepare the network for runnings
 save_in_lp_format(half_study, "Lara_Romero2016_penalara")
 
-## process results produced by python script: -----------------------------------
+## process results produced by python script: ----------------------------------
 # read the csv file with the results
 results <- read_csv("results/grant_sweep.csv")
 
@@ -145,7 +145,6 @@ results %>%
   geom_tile() +
   scale_fill_gradientn(values=c(0, .2, .5, .8, 1), 
                        colours=c("#BE2A3E", "#EC754A", "#F5CA63", "#7AAF60", "#22763F"))+
-  #theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   facet_wrap(~variable) + ggtitle("CaraDonna2017_aggregated")
 
 results %>%
@@ -156,7 +155,6 @@ results %>%
   geom_tile() +
   scale_fill_gradientn(values=c(0, .2, .5, .8, 1), 
                        colours=c("#BE2A3E", "#EC754A", "#F5CA63", "#7AAF60", "#22763F"))+
-  #theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_x_continuous(breaks = 2:10) +
   scale_y_continuous(breaks = 3:11) +
   facet_wrap(~variable) + ggtitle("Lara_Romero2016_penalara")
@@ -169,6 +167,4 @@ results %>%
   geom_tile() +
   scale_fill_gradientn(values=c(0, .2, .5, .8, 1), 
                        colours=c("#BE2A3E", "#EC754A", "#F5CA63", "#7AAF60", "#22763F"))+
-  #theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   facet_wrap(~variable) + ggtitle("WinfreeYYc_mln")
-
