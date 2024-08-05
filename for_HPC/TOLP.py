@@ -1219,7 +1219,7 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     print("precision: " +str(np.round(precision_total[0],2)))
     print("recall: " +str(np.round(recall_total[0],2)))
 
-    return auprc, auc_measure, precision_total[0], recall_total[0], feature_importance
+    return auprc, auc_measure, mcc, precision_total[0], recall_total[0], feature_importance
 
 def mxx(edges_orig):
     n_layers = len(edges_orig)
@@ -2009,7 +2009,7 @@ def topol_stacking_temporal_with_edgelist(edges_orig, target_layer, predict_num,
     
     #### perform model selection #### 
     #auprc, auc,precision,recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
-    auprc, auc,precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, mcc, precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     print("NAME IS ", name)
 
     return auprc, auc, precision, recall, featim, feats #, mytime
@@ -2135,7 +2135,7 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
     
     #### perform model selection #### 
     #auprc, auc,precision,recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
-    auprc, auc,precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, mcc, precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     print("NAME IS ", name)
 
     return auprc, auc, precision, recall, featim, feats
@@ -2159,8 +2159,7 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     edge_f_tr = []
     df_f_tr = [] 
     df_t_tr = []
-    
-    
+
     #### convert target layer A to matrix
     mymax= mxx(edges_orig)
     num_nodes = int(max( np.max(target_layer), mymax)) +1
@@ -2256,7 +2255,6 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho)
     df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho)
     
-
     
     df_t_tr_columns = df_t_tr[0].columns
     df_f_tr_columns = df_f_tr[0].columns    
@@ -2323,16 +2321,17 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     path_to_results = './results'+"/"+str(name)
     n_depths = [3, 6] # here is a sample search space
     n_ests = [25, 50, 100] # here is a sample search space
-    
+
     n_depth, n_est = model_selection(path_to_data, path_to_results, n_depths, n_ests)
 
-    auprc, auc, precision, recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, mcc, precision, recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     feats = list(df_tr.columns)
     
     # save numpy predicted edge idetities 
     np.savetxt(path_to_results + '/predicted_edges.txt', df_ho.iloc[:,0:3], delimiter=',')
 
-    return auprc, auc, precision,recall, featim, feats
+    return auprc, auc, mcc, precision, recall, featim, feats
+
 
 
 

@@ -9,12 +9,12 @@ import sys
 #from multiprocessing import Pool
 
 # --- functions --------
-def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, layer_to_predict):
+def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, layer_to_predict, is_unipartite=True):
     """
     this function gets the values for running tempotal link prediction using Xie's tool and runs it
 
     assumptions: 
-    layer ids are from 1 to n_layers (included), and all exist in the same file. 
+    layer ids are from 1 to n_layers (included), and all exist in the same file, under the format <layer>, <from>, <to>. 
     the predicted layer must be one of those layers.
 
     vaiable:
@@ -50,7 +50,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
+    auprc, auc, mcc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     print("feat_imp: ", featim)
 
     # read feature file and predictions and merge column into a single dataframe
@@ -69,7 +69,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     # save the combination dataframe to a file
     edges_probs.to_csv("results/" + name + "/edges_membership.csv", index=False)
 
-    print("Done. ")
+    return auprc, auc, mcc, precision, recall, featim, feats
 
 # --- argument handling ------
 # expected arguments:
@@ -79,10 +79,10 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 # 4. predicted later index - has default
 
 # set defaults
+file_path = "for_HPC/input/WinfreeYYc_mln.csv"
 q = 3
 u = 6
 target = 7
-file_path = "for_HPC/WinfreeYYc_mln.csv"
 
 # read user input params
 n_args = len(sys.argv)
@@ -106,5 +106,63 @@ assert os.path.isfile(file_path), "First argument must point to a mln file."
 
 
 # --- Run -------
-run_partially_observed_temporal_lp(file_path, q, u, target)
+run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+print("Single lp run finished. ")
 
+if __name__ == "__main__":
+    print("Running as main.")
+
+## -- Sweep ------
+# networks:
+# for_HPC/input/CaraDonna2017_aggregated.csv -  9 layers
+# for_HPC/input/WinfreeYYc_mln.csv           -  7 layers 
+# for_HPC/input/Lara_Romero2016_penalara.csv - 12 layers
+run_sweep = False
+if run_sweep:
+    file_path = "for_HPC/input/Lara_Romero2016_penalara.csv"
+    is_unipartite = 1
+    target = 12
+    max_u = 11
+    min_q = 2
+    max_q = max_u-1
+    
+    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall"])
+    nrows=0
+    for q in range(min_q, max_q+1):
+        for u in range(q+1, max_u+1):
+            print("Running for q: ", q, " and u: ", u)
+            auprc, auc, mcc, precision, recall, _, _2 = run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+            result_df.loc[nrows] = ["WinfreeYYc_mln", q, u, auc, auprc, mcc, precision, recall]
+            nrows = nrows+1
+
+print("Done.")
+
+def run_q_u_sweep(filepath, n_layers):
+    name = os.path.splitext(os.path.basename(filepath))[0]# file name
+    is_unipartite = 1
+    target = n_layers # we always target the last layer
+    max_u = n_layers - 1
+    min_q = 2
+    max_q = max_u-1
+    
+    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall"])
+    nrows=0
+    for q in range(min_q, max_q+1):
+        for u in range(q+1, max_u+1):
+            print("Running for q: ", q, " and u: ", u)
+            auprc, auc, mcc, precision, recall, _, _2 = run_partially_observed_temporal_lp(filepath, q, u, target, is_unipartite > 0)
+            result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall]
+            nrows = nrows+1
+    
+    return result_df
+
+resC = run_q_u_sweep("for_HPC/input/CaraDonna2017_aggregated.csv", 9)
+resW = run_q_u_sweep("for_HPC/input/WinfreeYYc_mln.csv", 7)
+resL = run_q_u_sweep("for_HPC/input/Lara_Romero2016_penalara.csv", 12)
+
+# concat the 3 dataframes into a single dataframe
+all = pd.concat([resW, resL, resC])
+
+# save the result to a file
+ouptut_file = "results/grant_sweep.csv"
+all.to_csv(ouptut_file, index=False)

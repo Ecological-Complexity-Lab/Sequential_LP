@@ -1,13 +1,13 @@
-# this script reads the database from dryad and
-# prepares the data to be run in the top-seq-lp (Xie's tool)
+# this script reads the database from dryad and explores it a bit.
+# then prepares the data of one network to be run in the top-seq-lp (Xie's tool)
 
 # includes:
 library(tidyverse)
 
-# check dryad database:
+# explore dryad database: -----------------------------------------------
 
 # read
-data <- read.csv("for_HPC/OIK-07303_database.csv")
+data <- read.csv("for_HPC/input/OIK-07303_database.csv")
 
 # how many studies?
 studies <- unique(data$study)
@@ -33,13 +33,12 @@ for (st in studies) {
   print(paste("dates in study '", st, "' : ", temporal_layers, ". sites :", sited_in_study , sep = ""))
 }
 
-
-# Choose a small network:
+# prepare a small network in the right format: ----------------------------
 name <- "WinfreeYYc"
 small_study <- data %>% filter(study==name)
 length(unique(small_study$cdate)) # 8
 length(unique(small_study$sSite)) # 1
-small_study %>% group_by(cdate) %>% summarise(n=n()) 
+small_study %>% group_by(cdate) %>% summarise(n=n())
 
 # prepare the data to be run in the top-seq-lp (Xie's tool)
 small_study %>% select(cdate, lower, higher)
