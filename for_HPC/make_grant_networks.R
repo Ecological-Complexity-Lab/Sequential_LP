@@ -168,3 +168,11 @@ results %>%
   scale_fill_gradientn(values=c(0, .2, .5, .8, 1), 
                        colours=c("#BE2A3E", "#EC754A", "#F5CA63", "#7AAF60", "#22763F"))+
   facet_wrap(~variable) + ggtitle("WinfreeYYc_mln")
+
+## Non temporal network Yuan et al 2021 ---------------------------------------
+path <- "for_HPC/input/benadi2013.csv"
+data2 <- read_csv(path)
+
+layers <- unique(data2$year_trt)
+# this paper contains two types of treatments?
+# we will take the rasisng temp one.
