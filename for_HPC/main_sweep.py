@@ -5,7 +5,7 @@
 import pandas as pd
 import os
 import sys
-import for_HPC.main as mn
+import main as mn
 
 # --- functions --------
 def run_q_u_sweep(filepath, n_layers, is_unipartite):
@@ -26,39 +26,37 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
     
     return result_df
 
-# --- argument handling ------
-# expected arguments:
-# 1. filename - must
-# 2. number of layers - has default
-# 3. is unipartite (1) or bipartite (2)- has default
+# --- main function ------
+def main_func():
+    # --- argument handling ------
+    # expected arguments:
+    # 1. filename - must
+    # 2. number of layers - has default
+    # 3. is unipartite (1) or bipartite (2)- has default
 
-# set defaults
-file_path = "for_HPC/input/WinfreeYYc_mln.csv"
-n_layers = 7
-is_unipartite = 1
+    # set defaults
+    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
+    n_layers = 7
+    is_unipartite = 1
 
-# read user input params
-n_args = len(sys.argv)
-print(n_args)
-match n_args:
-    case 1:
-        raise Exception("Must have at leaset one argument - with file path to the mln file")
-    case 2:
+    # read user input params
+    n_args = len(sys.argv)
+    print(n_args)
+    if n_args == 1:
+        raise Exception("Must have at least one argument - with file path to the mln file")
+    elif n_args == 2:
         print("Using default parameters: n_layers=7, is_unipartite=1")
-    case 5:
+    elif n_args == 5:
         print("Script arguments are:", sys.argv[1:])
         n_layers = sys.argv[2]
         is_unipartite = sys.argv[3]
-    case _:
-        raise Exception("invalide argument number, please see README.md for tool usage.")
-        
-file_path = sys.argv[1]
-assert os.path.isfile(file_path), "First argument must point to a mln file."
+    else:
+        raise Exception("Invalid argument number, please see README.md for tool usage.")
 
-# --- Run -------
-if __name__ == "__main__":
-    print("Running as main.")
+    file_path = sys.argv[1]
+    assert os.path.isfile(file_path), "First argument must point to a mln file."
 
+    # --- Run -------
     # run the sweeps
     res = run_q_u_sweep(file_path, n_layers, is_unipartite)
 
@@ -66,3 +64,8 @@ if __name__ == "__main__":
     name = os.path.splitext(os.path.basename(file_path))[0]# file name
     ouptut_file = "results/"+ name +"_sweep.csv"
     res.to_csv(ouptut_file, index=False)
+
+# --- Run -------
+if __name__ == "__main__":
+    print("Running as main.")
+    main_func()

@@ -3,10 +3,9 @@
 # --- include -----
 import numpy as np
 import pandas as pd
-import TOLP as tolp
 import os
 import sys
-#from multiprocessing import Pool
+import TOLP as tolp
 
 # --- functions --------
 def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, layer_to_predict, is_unipartite=True):
@@ -38,10 +37,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
         # filter from arrays rows that are relevant to that layer:
         layer = mln_data[mln_data[:,0]==i]
         edges_orig.append(layer[:,1:3])
-        
 
-        # load the layers - each layer in a different text file es edge lists
-        #edges_orig.append(np.loadtxt(path+name+"/"+ name+"_{}.txt".format(i)))
 
     pred_ind = layer_to_predict-1
 
@@ -71,44 +67,50 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     return auprc, auc, mcc, precision, recall, featim, feats
 
-# --- argument handling ------
-# expected arguments:
-# 1. filename - must
-# 2. flow variable (q - n layers in a stack) - has default
-# 3. search varianle (u - n layers used to predicte) - has default
-# 4. predicted later index - has default
+# --- main function ------
+def main_func():
+    # --- argument handling ------
+    # expected arguments:
+    # 1. filename - must
+    # 2. flow variable (q - n layers in a stack) - has default
+    # 3. search varianle (u - n layers used to predicte) - has default
+    # 4. predicted later index - has default
+    # 5. is unipartite (1) or bipartite (2)- has default
 
-# set defaults
-file_path = "for_HPC/input/WinfreeYYc_mln.csv"
-q = 3
-u = 6
-target = 7
+    # set defaults
+    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
+    q = 3
+    u = 6
+    target = 7
+    is_unipartite = 1
 
-# read user input params
-n_args = len(sys.argv)
-print(n_args)
-match n_args:
-    case 1:
-        raise Exception("Must have at leaset one argument - with file path to the mln file")
-    case 2:
+    # read user input params
+    n_args = len(sys.argv)
+    print(n_args)
+    if n_args == 1:
+        raise Exception("Must have at least one argument - with file path to the mln file")
+    elif n_args == 2:
         print("Using default parameters: q=3, u=6, target_layer=7")
-    case 5:
+    elif n_args == 5:
         print("Script arguments are:", sys.argv[1:])
         q = sys.argv[2]
         u = sys.argv[3]
         target = sys.argv[4]
-    case _:
-        raise Exception("invalide argument number, please see README.md for tool usage.")
-        
+        is_unipartite = sys.argv[5]
+    else:
+        raise Exception("Invalid argument number, please see README.md for tool usage.")
 
-file_path = sys.argv[1]
-assert os.path.isfile(file_path), "First argument must point to a mln file."
+    file_path = sys.argv[1]
+    assert os.path.isfile(file_path), "First argument must point to a mln file."
 
+    # --- Run -------
+    run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+    print("Single lp run finished. ")
 
 # --- Run -------
 if __name__ == "__main__":
     print("Running as main.")
-    run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
-    print("Single lp run finished. ")
+    main_func()
+
 
 
