@@ -950,7 +950,407 @@ def gen_topol_feats_timed(A, edge_s):
     df_feat = pd.merge(df_feat,df_merge, on=['ind','i','j'], sort=False)
     return df_feat, time_cost
 
-def gen_topol_feats_temporal(A_orig, A_tr, edge_s): 
+def gen_topol_feats_bipartite(A, edge_s): 
+    
+    """ 
+    calculates features relevant to a bipartite network
+
+    this function captures the time cost of the function to finish
+    """
+    
+    time_cost = {}
+    _, edges = adj_to_nodes_edges(A)    
+    nodes = [int(iii) for iii in range(A.shape[0])]
+    N = len(nodes)
+    if len(edges.shape)==1:
+        edges = [(int(iii),int(jjj)) for iii,jjj in [edges]]
+    else:
+        edges = [(int(iii),int(jjj)) for iii,jjj in edges]
+
+    # define graph
+    G=nx.Graph()
+    G.add_nodes_from(nodes)
+    G.add_edges_from(edges)
+    
+
+    start_time = time.time()    
+    
+    # average degree (AD) - the same as in unipartite
+    ave_deg_net = np.sum(A)/A.shape[0]
+    
+    time_cost["AD"] = (time.time() - start_time)
+    start_time = time.time()
+    
+    # variance of degree distribution (VD)
+    var_deg_net = np.sqrt(np.sum(np.square(np.sum(A,axis = 0)-ave_deg_net))/(A.shape[0]-1))
+    
+    time_cost["VD"] = (time.time() - start_time)
+    start_time = time.time()    
+    
+    # average (local) clustering coefficient (ACC)
+    ave_clust_net = nx.bipartite.average_clustering(G)
+
+    time_cost["ACC"] = (time.time() - start_time)
+    start_time = time.time()
+
+    # samples chosen - features
+    edge_pairs_f_i = edge_s[:,0]
+    edge_pairs_f_j = edge_s[:,1]
+
+    time_cost["chosen features"] = (time.time() - start_time)
+    start_time = time.time()    
+
+    # triangeles are not defined for bipartite networks:
+    # TODO: butterflies?
+
+    # local number of triangles for i and j (LNT_i, LNT_j)  
+    #numtriang_nodes_obj = nx.bipartite.triangles(G)
+    #numtriang_nodes = []
+    #for nn in range(len(nodes)):
+    #    numtriang_nodes.append(numtriang_nodes_obj[nn])
+     
+    #numtriang1_edges = []
+    #numtriang2_edges = []
+    #for ee in range(len(edge_s)):
+    #    numtriang1_edges.append(numtriang_nodes[edge_s[ee][0]])
+    #    numtriang2_edges.append(numtriang_nodes[edge_s[ee][1]])
+
+    #time_cost["LNT"] = (time.time() - start_time)
+    #start_time = time.time()
+         
+    # Page rank values for i and j (PR_i, PR_j) 
+    # TODO this? https://scikit-network.readthedocs.io/en/latest/tutorials/ranking/pagerank.html
+    page_rank_nodes_obj = nx.pagerank(G)
+    page_rank_nodes = []
+    for nn in range(len(nodes)):
+        page_rank_nodes.append(page_rank_nodes_obj[nn])
+        
+    page_rank1_edges = []
+    page_rank2_edges = []
+    for ee in range(len(edge_s)):
+        page_rank1_edges.append(page_rank_nodes[edge_s[ee][0]])
+        page_rank2_edges.append(page_rank_nodes[edge_s[ee][1]])
+
+    time_cost["Page rank"] = (time.time() - start_time)
+    start_time = time.time()
+
+    # local clustering coefficients for i and j (LCC_i, LCC_j)
+    clust_nodes_obj = nx.bipartite.clustering(G)
+    clust_nodes = []
+    for nn in range(len(nodes)):
+        clust_nodes.append(clust_nodes_obj[nn])
+    
+    clust1_edges = []
+    clust2_edges = []
+    for ee in range(len(edge_s)):
+        clust1_edges.append(clust_nodes[edge_s[ee][0]])
+        clust2_edges.append(clust_nodes[edge_s[ee][1]])
+
+    time_cost["LCC_i"] = (time.time() - start_time)
+    start_time = time.time()
+    
+    # average neighbor degrees for i and j (AND_i, AND_j)
+    # the same as in unipartite
+    ave_neigh_deg_nodes_obj = nx.average_neighbor_degree(G)
+    ave_neigh_deg_nodes = []
+    for nn in range(len(nodes)):
+        ave_neigh_deg_nodes.append(ave_neigh_deg_nodes_obj[nn])
+    
+    ave_neigh_deg1_edges = []
+    ave_neigh_deg2_edges = []
+    for ee in range(len(edge_s)):
+        ave_neigh_deg1_edges.append(ave_neigh_deg_nodes[edge_s[ee][0]])
+        ave_neigh_deg2_edges.append(ave_neigh_deg_nodes[edge_s[ee][1]])
+ 
+    time_cost["AND_i"] = (time.time() - start_time)
+    start_time = time.time()
+    
+    # degree centralities for i and j (DC_i, DC_j)
+    deg_cent_nodes_obj = nx.bipartite.degree_centrality(G)
+    deg_cent_nodes = []
+    for nn in range(len(nodes)):
+        deg_cent_nodes.append(deg_cent_nodes_obj[nn])
+     
+    deg_cent1_edges = []
+    deg_cent2_edges = []
+    for ee in range(len(edge_s)):
+        deg_cent1_edges.append(deg_cent_nodes[edge_s[ee][0]])
+        deg_cent2_edges.append(deg_cent_nodes[edge_s[ee][1]])
+
+    time_cost["DC_i"] = (time.time() - start_time)
+    start_time = time.time()
+
+	# eigenvector centralities for i and j (EC_i, EC_j)
+    # TODO: is ok to use? PageRank is a variant of eigenvector centrality
+    tr = 1
+    toler = 1e-6
+    while tr == 1:
+        try:
+            eig_cent_nodes_obj = nx.eigenvector_centrality(G,tol = toler)
+            tr = 0
+        except:
+            toler = toler*1e1
+    
+    eig_cent_nodes = []
+    for nn in range(len(nodes)):
+        eig_cent_nodes.append(eig_cent_nodes_obj[nn])
+     
+    eig_cent1_edges = []
+    eig_cent2_edges = []
+    for ee in range(len(edge_s)):
+        eig_cent1_edges.append(eig_cent_nodes[edge_s[ee][0]])
+        eig_cent2_edges.append(eig_cent_nodes[edge_s[ee][1]])
+
+    time_cost["EC_i"] = (time.time() - start_time)
+    start_time = time.time()
+
+    # Katz centralities for i and j (KC_i, KC_j)
+    # TODO also a kind of eigenvector centrality
+    # TODO this? https://scikit-network.readthedocs.io/en/latest/tutorials/ranking/katz.html
+    ktz_cent_nodes_obj = nx.katz_centrality_numpy(G)
+    ktz_cent_nodes = []
+    for nn in range(len(nodes)):
+        ktz_cent_nodes.append(ktz_cent_nodes_obj[nn])
+    
+    ktz_cent1_edges = []
+    ktz_cent2_edges = []
+    for ee in range(len(edge_s)):
+        ktz_cent1_edges.append(ktz_cent_nodes[edge_s[ee][0]])
+        ktz_cent2_edges.append(ktz_cent_nodes[edge_s[ee][1]])
+
+    time_cost["KC_i"] = (time.time() - start_time)
+    start_time = time.time()
+        
+    # Jaccard’s coefficient of neighbor sets of i, j (JC)
+    # will always be 0 for bipartite networks
+    #jacc_coeff_obj = nx.jaccard_coefficient(G,edge_s)
+    #jacc_coeff_edges = []
+    #for uu,vv,jj in jacc_coeff_obj:
+    #    jacc_coeff_edges.append([uu,vv,jj])   
+    #df_jacc_coeff = pd.DataFrame(jacc_coeff_edges, columns=['i','j','jacc_coeff'])
+    #df_jacc_coeff['ind'] = df_jacc_coeff.index
+
+    #time_cost["JC"] = (time.time() - start_time)
+    #start_time = time.time()
+
+    # resource allocation index of i, j (RA) - should be the same as in unipartite
+    res_alloc_ind_obj = nx.resource_allocation_index(G, edge_s)
+    res_alloc_ind_edges = []
+    for uu,vv,jj in res_alloc_ind_obj:
+        res_alloc_ind_edges.append([uu,vv,jj])
+    df_res_alloc_ind = pd.DataFrame(res_alloc_ind_edges, columns=['i','j','res_alloc_ind'])    
+    df_res_alloc_ind['ind'] = df_res_alloc_ind.index
+
+    time_cost["RA"] = (time.time() - start_time)
+    start_time = time.time()
+
+  	# Adamic/Adar index of i, j (AA)
+    # returns 0 for bipartite networks
+    #adam_adar_obj =  nx.adamic_adar_index(G, edge_s)
+    #adam_adar_edges = []
+    #for uu,vv,jj in adam_adar_obj:
+    #    adam_adar_edges.append([uu,vv,jj])
+    #df_adam_adar = pd.DataFrame(adam_adar_edges, columns=['i','j','adam_adar'])
+    #df_adam_adar['ind'] = df_adam_adar.index
+    
+    #df_merge = pd.merge(df_jacc_coeff,df_res_alloc_ind, on=['ind','i','j'], sort=False)
+    #df_merge = pd.merge(df_merge,df_adam_adar, on=['ind','i','j'], sort=False)
+    df_merge = df_res_alloc_ind
+
+    #time_cost["AA"] = (time.time() - start_time)
+    #start_time = time.time()
+
+    # preferential attachment (degree product) of i, j (PA)
+        # returns 0 for bipartite networks
+    #pref_attach_obj = nx.preferential_attachment(G, edge_s)
+    #pref_attach_edges = []
+    #for uu,vv,jj in pref_attach_obj:
+    #    pref_attach_edges.append([uu,vv,jj])
+    #df_pref_attach = pd.DataFrame(pref_attach_edges, columns=['i','j','pref_attach'])
+    #df_pref_attach['ind'] = df_pref_attach.index
+
+    #time_cost["PA"] = (time.time() - start_time)
+    #start_time = time.time()
+
+    
+    # TODO: go over each feature, and convert to bipartite version
+
+
+    # global features:
+    # similarity of connections in the graph with respect to the node degree
+    # degree assortativity (DA)
+    deg_ass_net = nx.degree_assortativity_coefficient(G)
+
+    time_cost["DA"] = (time.time() - start_time)
+    start_time = time.time()
+
+    # transitivity: fraction of all possible triangles present in G
+    # network transitivity (clustering coefficient) (NT)
+    transit_net = nx.transitivity(G)  
+    # network diameter (ND)
+
+    time_cost["NT"] = (time.time() - start_time)
+    start_time = time.time()
+
+    try:
+        diam_net = nx.diameter(G)
+    except:
+        diam_net = np.inf
+        
+    ave_deg_net = [ave_deg_net for ii in range(len(edge_s))]
+    var_deg_net = [var_deg_net for ii in range(len(edge_s))]
+    ave_clust_net = [ave_clust_net for ii in range(len(edge_s))]
+    deg_ass_net = [deg_ass_net for ii in range(len(edge_s))]
+    transit_net = [transit_net for ii in range(len(edge_s))]
+    diam_net = [diam_net for ii in range(len(edge_s))]
+    com_ne = []
+    for ee in range(len(edge_s)):
+        com_ne.append(len(sorted(nx.common_neighbors(G,edge_s[ee][0],edge_s[ee][1]))))
+
+    time_cost["global_stuff"] = (time.time() - start_time)
+    start_time = time.time()
+         
+    # closeness centralities for i and j (CC_i, CC_j)
+    closn_cent_nodes_obj = nx.closeness_centrality(G)
+    closn_cent_nodes = []
+    for nn in range(len(nodes)):
+        closn_cent_nodes.append(closn_cent_nodes_obj[nn])
+      
+    closn_cent1_edges = []
+    closn_cent2_edges = []
+    for ee in range(len(edge_s)):
+        closn_cent1_edges.append(closn_cent_nodes[edge_s[ee][0]])
+        closn_cent2_edges.append(closn_cent_nodes[edge_s[ee][1]])
+
+    time_cost["CC_i"] = (time.time() - start_time)
+    start_time = time.time()
+          
+    # shortest path between i, j (SP)        
+    short_Mat_aux = nx.shortest_path_length(G)
+    short_Mat={}
+    for ss in range(N):
+        value = next(short_Mat_aux)
+        short_Mat[value[0]] = value[1]   
+    short_path_edges = []
+    for ee in range(len(edge_s)):
+        if edge_s[ee][1] in short_Mat[edge_s[ee][0]].keys():
+            short_path_edges.append(short_Mat[edge_s[ee][0]][edge_s[ee][1]])  
+        else:
+            short_path_edges.append(np.inf)
+
+    time_cost["SP"] = (time.time() - start_time)
+    start_time = time.time()
+            
+    # load centralities for i and j (LC_i, LC_j)
+    load_cent_nodes_obj = nx.load_centrality(G,normalized=True)
+    load_cent_nodes = []
+    for nn in range(len(nodes)):
+        load_cent_nodes.append(load_cent_nodes_obj[nn])
+    
+    load_cent1_edges = []
+    load_cent2_edges = []
+    for ee in range(len(edge_s)):
+        load_cent1_edges.append(load_cent_nodes[edge_s[ee][0]])
+        load_cent2_edges.append(load_cent_nodes[edge_s[ee][1]])
+
+    time_cost["LC_i"] = (time.time() - start_time)
+    start_time = time.time()
+
+
+    # shortest-path betweenness centralities for i and j (SPBC_i, SPBC_j)
+    betw_cent_nodes_obj = nx.betweenness_centrality(G,normalized=True)
+    betw_cent_nodes = []
+    for nn in range(len(nodes)):
+        betw_cent_nodes.append(betw_cent_nodes_obj[nn])
+    
+    betw_cent1_edges = []
+    betw_cent2_edges = []
+    for ee in range(len(edge_s)):
+        betw_cent1_edges.append(betw_cent_nodes[edge_s[ee][0]])
+        betw_cent2_edges.append(betw_cent_nodes[edge_s[ee][1]])
+    
+    
+    time_cost["SPBC_i"] = (time.time() - start_time)
+    start_time = time.time()   
+        
+    neigh_ = {}
+    for nn in range(len(nodes)):
+        neigh_[nn] = np.where(A[nn,:])[0]
+    
+    df_pref_attach = []
+    for ee in range(len(edge_s)):
+        df_pref_attach.append(len(neigh_[edge_s[ee][0]])*len(neigh_[edge_s[ee][1]]))
+    
+    U, sig, V = np.linalg.svd(A, full_matrices=False)
+    S = np.diag(sig)
+    Atilda = np.dot(U, np.dot(S, V))
+    Atilda = np.array(Atilda)
+    
+    f_mean = lambda x: np.mean(x) if len(x)>0 else 0
+    # entry i, j in low rank approximation (LRA) via singular value decomposition (SVD)
+    svd_edges = []
+    # dot product of columns i and j in LRA via SVD for each pair of nodes i, j
+    svd_edges_dot = []
+    # average of entries i and j’s neighbors in low rank approximation
+    svd_edges_mean = []
+    for ee in range(len(edge_s)):
+        svd_edges.append(Atilda[edge_s[ee][0],edge_s[ee][1]])
+        svd_edges_dot.append(np.inner(Atilda[edge_s[ee][0],:],Atilda[:,edge_s[ee][1]]))
+        svd_edges_mean.append(f_mean(Atilda[edge_s[ee][0],neigh_[edge_s[ee][1]]]))        
+ 
+    time_cost["SVD"] = (time.time() - start_time)
+    start_time = time.time()
+    
+    # Leicht-Holme-Newman index of neighbor sets of i, j (LHN)
+    f_LHN = lambda num,den: 0 if (num==0 and den==0) else float(num)/den 
+    LHN_edges = [f_LHN(num,den) for num,den in zip(np.array(com_ne),np.array(df_pref_attach))]
+    
+    U, sig, V = np.linalg.svd(A)
+    S = linalg.diagsvd(sig, A.shape[0], A.shape[1])
+    S_trunc = S.copy()
+    S_trunc[S_trunc < sig[int(np.ceil(np.sqrt(A.shape[0])))]] = 0
+    Atilda = np.dot(np.dot(U, S_trunc), V)
+    Atilda = np.array(Atilda)
+
+    time_cost["LHN"] = (time.time() - start_time)
+    start_time = time.time()
+   
+    f_mean = lambda x: np.mean(x) if len(x)>0 else 0
+    # an approximation of LRA (LRA-approx)
+    svd_edges_approx = []
+    # an approximation of dLRA (dLRA-approx)
+    svd_edges_dot_approx = []
+    # an approximation of mLRA (mLRA-approx)
+    svd_edges_mean_approx = []
+    for ee in range(len(edge_s)):
+        svd_edges_approx.append(Atilda[edge_s[ee][0],edge_s[ee][1]])
+        svd_edges_dot_approx.append(np.inner(Atilda[edge_s[ee][0],:],Atilda[:,edge_s[ee][1]]))
+        svd_edges_mean_approx.append(f_mean(Atilda[edge_s[ee][0],neigh_[edge_s[ee][1]]])) 
+    
+    time_cost["dLRA"] = (time.time() - start_time)
+    start_time = time.time()
+
+    # number of nodes (N)
+    num_nodes = A.shape[0]
+    # number of observed edges (OE)
+    num_edges = int(np.sum(A)/2)
+    
+    # construct a dictionary of the features
+    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
+         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 'num_triangles_2':numtriang2_edges, \
+         'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 'ave_neigh_deg2':ave_neigh_deg2_edges,\
+         'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
+         'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'LHN':LHN_edges, 'svd_edges':svd_edges,'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean,\
+         'svd_edges_approx':svd_edges_approx,'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
+         'num_nodes':num_nodes, 'num_edges':num_edges}     
+    
+    # construct a dataframe of the features
+    df_feat = pd.DataFrame(data=d)
+    df_feat['ind'] = df_feat.index
+    df_feat = pd.merge(df_feat,df_merge, on=['ind','i','j'], sort=False)
+    return df_feat, time_cost
+
+def gen_topol_feats_temporal(A_orig, A_tr, edge_s, is_unipartite=True): 
     
     """ 
     This function generate topological feature based on which layer it is
@@ -964,16 +1364,22 @@ def gen_topol_feats_temporal(A_orig, A_tr, edge_s):
     
     
     """
+    
+    # Choose function to use as feature maker according to network structore
+    calc_feats= gen_topol_feats_timed 
+    if not is_unipartite: # if bipartite then use the relevant function
+        calc_feats = gen_topol_feats_bipartite
+
     time_count = []
-    temp,time_cost = gen_topol_feats_timed( A_tr[0],edge_s)
+    temp,time_cost = calc_feats( A_tr[0],edge_s)
     time_count.append(time_cost)
     df_feat = temp
     for i in range(1,len(A_tr)):
-        temp,time_cost = gen_topol_feats_timed(A_tr[i],edge_s)
+        temp,time_cost = calc_feats(A_tr[i],edge_s)
         time_count.append(time_cost)
         df_feat = pd.concat([df_feat, temp], axis=1)
         
-    temp,time_cost = gen_topol_feats_timed(A_orig, edge_s)
+    temp,time_cost = calc_feats(A_orig, edge_s)
     time_count.append(time_cost)
     df_feat = pd.concat([df_feat, temp], axis=1)
     
@@ -2140,7 +2546,7 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
 
     return auprc, auc, precision, recall, featim, feats
 
-def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name): 
+def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite=True): 
     
     """ 
     Assuming we have some information about the target layer
@@ -2230,9 +2636,9 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
         A_tr_temp.append(np.asmatrix(A_tr_new[i-predict_num]))
         ###########DIFFERENCE###################
         ###################################################################
-        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_f_tr[i-predict_num])
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_f_tr[i-predict_num], is_unipartite)
         df_f_tr.append(df_temp)
-        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num])  
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num], is_unipartite)  
         df_t_tr.append(df_temp)
     
     # generate features for the final stack (training)
@@ -2240,8 +2646,8 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     edge_f_tr_final = np.loadtxt("./edge_tf_tr/edge_f_final"+"_"+str(name)+".txt").astype('int')
     A_tr_temp_ = A_tr[-(predict_num):]
     A_tr_temp_.append(np.asmatrix(A_train_))
-    df_f_temp, time1 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_f_tr_final)
-    df_t_temp, time2 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_t_tr_final)
+    df_f_temp, time1 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_f_tr_final, is_unipartite)
+    df_t_temp, time2 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_t_tr_final, is_unipartite)
 
     df_f_tr.append(df_f_temp)
     df_t_tr.append(df_t_temp)
@@ -2252,8 +2658,8 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     
     A_tr_temp_ = A_tr[-(predict_num):]
     A_tr_temp_.append(np.asmatrix(A_train_))
-    df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho)
-    df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho)
+    df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho, is_unipartite)
+    df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho, is_unipartite)
     
     
     df_t_tr_columns = df_t_tr[0].columns

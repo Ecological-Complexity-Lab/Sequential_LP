@@ -46,7 +46,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, mcc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
+    auprc, auc, mcc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite)
     print("feat_imp: ", featim)
 
     # read feature file and predictions and merge column into a single dataframe
@@ -114,3 +114,28 @@ if __name__ == "__main__":
 
 
 
+    # temp:
+    # make A
+    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
+    
+    mln_data = np.loadtxt(file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
+    n_layers = int(mln_data.max(axis=0)[0])
+    target_layer = mln_data[mln_data[:,0]==n_layers]
+
+    num_nodes = int(np.max(mln_data)) +1
+    row = np.array(target_layer)[:,0]
+    col = np.array(target_layer)[:,1]
+    data_aux = np.ones(len(row))
+
+    import scipy.sparse as sparse
+    from scipy.sparse import csr_matrix
+
+    A = csr_matrix((data_aux,(row,col)),shape=(num_nodes,num_nodes))
+    A = sparse.triu(A,1) + sparse.triu(A,1).transpose()
+    A[A>0] = 1 
+    A = A.todense()
+
+    # generate features for the final stack (holdout data)
+    edge_s= np.loadtxt("./edge_tf_true/edge_t"+"_"+str("WinfreeYYc_mln")+".txt").astype('int')
+
+    df_t_ho, time2 = tolp.gen_topol_feats_bipartite(A, edge_s)
