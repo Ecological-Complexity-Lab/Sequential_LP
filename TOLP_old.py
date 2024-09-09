@@ -1675,7 +1675,7 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     print("recall: " +str(np.round(recall_total[0],2)))
     print("got here")
     print(auc_measure, auprc, precision_total[0], recall_total[0])
-    return auprc, auc_measure, precision_total[0], recall_total[0], feature_importance
+    return auprc, auc_measure, precision_total[0], recall_total[0], feature_importance, cm_dt4
 
 def mxx(edges_orig):
     n_layers = len(edges_orig)
@@ -2006,10 +2006,10 @@ def topol_stacking_temporal_with_edgelist(edges_orig, target_layer, predict_num,
     
     #### perform model selection #### 
     #auprc, auc,precision,recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
-    auprc, auc,precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc,precision,recall, featim, cm = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     print("NAME IS ", name)
 
-    return auprc, auc, precision, recall, featim, feats
+    return auprc, auc, precision, recall, featim, feats, cm
 #, mytime
 
 ""
@@ -2136,10 +2136,10 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
     
     #### perform model selection #### 
     #auprc, auc,precision,recall = heldout_performance(path_to_data, path_to_results, n_depth, n_est)
-    auprc, auc,precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc,precision,recall, featim, cm = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     print("NAME IS ", name)
 
-    return auprc, auc, precision, recall, featim, feats
+    return auprc, auc, precision, recall, featim, feats, cm
 
 
 
@@ -2337,10 +2337,10 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name)
     
     n_depth, n_est = model_selection(path_to_data, path_to_results, n_depths, n_ests)
 
-    auprc, auc, precision,recall, featim = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    auprc, auc, precision,recall, featim, cm = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
     feats = list(df_tr.columns)
     
-    return auprc, auc, precision,recall, featim, feats
+    return auprc, auc, precision,recall, featim, feats, cm
     
 
 

@@ -15,13 +15,15 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
     min_q = 2
     max_q = max_u-1
     
-    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall"])
+    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall", "tn", "fp", "fn", "tp"])
+
     nrows=0
     for q in range(min_q, max_q+1):
         for u in range(q+1, max_u+1):
             print("Running for q: ", q, " and u: ", u)
-            auprc, auc, mcc, precision, recall, _, _2 = mn.run_partially_observed_temporal_lp(filepath, q, u, target, is_unipartite > 0)
-            result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall]
+            auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(filepath, q, u, target, is_unipartite > 0)
+            tn, fp, fn, tp = cm.ravel()
+            result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
             nrows = nrows+1
     
     return result_df

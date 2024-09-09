@@ -46,7 +46,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, mcc, precision, recall, featim, feats = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite)
+    auprc, auc, mcc, precision, recall, featim, feats, cm = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite)
     print("feat_imp: ", featim)
 
     # read feature file and predictions and merge column into a single dataframe
@@ -65,7 +65,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     # save the combination dataframe to a file
     edges_probs.to_csv("results/" + name + "/edges_membership.csv", index=False)
 
-    return auprc, auc, mcc, precision, recall, featim, feats
+    return auprc, auc, mcc, precision, recall, featim, feats, cm
 
 # --- main function ------
 def main_func():

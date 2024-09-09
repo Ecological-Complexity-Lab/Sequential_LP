@@ -1,5 +1,5 @@
 import numpy as np
-import TOLP as tolp
+import TOLP_old as tolp
 from multiprocessing import Pool
 path = r"community_label_TSBM//"
 

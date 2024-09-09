@@ -82,7 +82,7 @@ or
 the same as the one for a single lp run: `layer | node_from | node_to`
 
 ### output
-the same as a single run, with the addision if a new file:
+the same as a single run, with the addision of a new file:
 `results/<input_file_name>_sweep.csv`
 in it the performance measurments for each pair of possible q and u.
 
