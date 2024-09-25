@@ -91,12 +91,12 @@ def main_func():
         raise Exception("Must have at least one argument - with file path to the mln file")
     elif n_args == 2:
         print("Using default parameters: q=3, u=6, target_layer=7")
-    elif n_args == 5:
+    elif n_args == 6:
         print("Script arguments are:", sys.argv[1:])
-        q = sys.argv[2]
-        u = sys.argv[3]
-        target = sys.argv[4]
-        is_unipartite = sys.argv[5]
+        q = int(sys.argv[2])
+        u = int(sys.argv[3])
+        target = int(sys.argv[4])
+        is_unipartite = int(sys.argv[5])
     else:
         raise Exception("Invalid argument number, please see README.md for tool usage.")
 
