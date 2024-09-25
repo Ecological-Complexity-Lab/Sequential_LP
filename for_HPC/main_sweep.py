@@ -48,10 +48,10 @@ def main_func():
         raise Exception("Must have at least one argument - with file path to the mln file")
     elif n_args == 2:
         print("Using default parameters: n_layers=7, is_unipartite=1")
-    elif n_args == 5:
+    elif n_args == 4:
         print("Script arguments are:", sys.argv[1:])
-        n_layers = sys.argv[2]
-        is_unipartite = sys.argv[3]
+        n_layers = int(sys.argv[2])
+        is_unipartite = int(sys.argv[3])
     else:
         raise Exception("Invalid argument number, please see README.md for tool usage.")
 
