@@ -75,14 +75,14 @@ def main_func():
     # 2. flow variable (q - n layers in a stack) - has default
     # 3. search varianle (u - n layers used to predicte) - has default
     # 4. predicted later index - has default
-    # 5. is unipartite (1) or bipartite (2)- has default
+    # 5. is unipartite (1) or bipartite (0)- has default
 
     # set defaults
     file_path = "for_HPC/input/WinfreeYYc_mln.csv"
     q = 3
     u = 6
     target = 7
-    is_unipartite = 1
+    is_unipartite = 0
 
     # read user input params
     n_args = len(sys.argv)

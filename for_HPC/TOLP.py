@@ -25,6 +25,24 @@ from random import randint
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, matthews_corrcoef
 
 
+###### Consts ########
+uni_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
+           'num_triangles_1', 'num_triangles_2', 
+           'pag_rank1', 'pag_rank2', 'clust_coeff1', 'clust_coeff2',
+           'ave_neigh_deg1', 'ave_neigh_deg2', 'eig_cent1', 'eig_cent2',
+           'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1',
+           'betw_cent2', 'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2',
+           'pref_attach', 'LHN', 'svd_edges', 'svd_edges_dot', 'svd_edges_mean',
+           'svd_edges_approx', 'svd_edges_dot_approx', 'svd_edges_mean_approx',
+           'short_path', 'deg_assort', 'transit_net', 'diam_net',
+           'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']
+bi_feature_set = ['ave_deg_net', 'var_deg_net', 'ave_clust_net', 'pag_rank1', 
+        'pag_rank2', 'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2',
+        'eig_cent1', 'eig_cent2', 'deg_cent1', 'deg_cent2', 
+        'ktz_cent1', 'ktz_cent2', 'short_path', 'diam_net', 
+        'num_nodes', 'num_edges']   
+
+
 ###### Auxilary function ########
 
 def gen_tr_ho_networks(A_orig, alpha, alpha_):
@@ -967,6 +985,9 @@ def gen_topol_feats_bipartite(A, edge_s):
     else:
         edges = [(int(iii),int(jjj)) for iii,jjj in edges]
 
+    # get the set of nodes only in one of the bipartite group
+    group1_nodes = list(set((edge_s[:,0])))
+
     # define graph
     G=nx.Graph()
     G.add_nodes_from(nodes)
@@ -1066,7 +1087,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     start_time = time.time()
     
     # degree centralities for i and j (DC_i, DC_j)
-    deg_cent_nodes_obj = nx.bipartite.degree_centrality(G)
+    deg_cent_nodes_obj = nx.bipartite.degree_centrality(G, group1_nodes)
     deg_cent_nodes = []
     for nn in range(len(nodes)):
         deg_cent_nodes.append(deg_cent_nodes_obj[nn])
@@ -1174,8 +1195,9 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     
     # TODO: go over each feature, and convert to bipartite version
+    # TODO 2:start running with only some of the features. later we cann add more.
 
-
+    '''
     # global features:
     # similarity of connections in the graph with respect to the node degree
     # degree assortativity (DA)
@@ -1192,17 +1214,18 @@ def gen_topol_feats_bipartite(A, edge_s):
     time_cost["NT"] = (time.time() - start_time)
     start_time = time.time()
 
+    '''
     try:
         diam_net = nx.diameter(G)
     except:
         diam_net = np.inf
-        
+    diam_net = [diam_net for ii in range(len(edge_s))]
+    '''
     ave_deg_net = [ave_deg_net for ii in range(len(edge_s))]
     var_deg_net = [var_deg_net for ii in range(len(edge_s))]
     ave_clust_net = [ave_clust_net for ii in range(len(edge_s))]
     deg_ass_net = [deg_ass_net for ii in range(len(edge_s))]
     transit_net = [transit_net for ii in range(len(edge_s))]
-    diam_net = [diam_net for ii in range(len(edge_s))]
     com_ne = []
     for ee in range(len(edge_s)):
         com_ne.append(len(sorted(nx.common_neighbors(G,edge_s[ee][0],edge_s[ee][1]))))
@@ -1224,13 +1247,15 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["CC_i"] = (time.time() - start_time)
     start_time = time.time()
-          
+    
+    '''    
     # shortest path between i, j (SP)        
     short_Mat_aux = nx.shortest_path_length(G)
     short_Mat={}
     for ss in range(N):
         value = next(short_Mat_aux)
-        short_Mat[value[0]] = value[1]   
+        short_Mat[value[0]] = value[1] 
+     
     short_path_edges = []
     for ee in range(len(edge_s)):
         if edge_s[ee][1] in short_Mat[edge_s[ee][0]].keys():
@@ -1240,7 +1265,8 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["SP"] = (time.time() - start_time)
     start_time = time.time()
-            
+    
+    '''       
     # load centralities for i and j (LC_i, LC_j)
     load_cent_nodes_obj = nx.load_centrality(G,normalized=True)
     load_cent_nodes = []
@@ -1329,6 +1355,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     time_cost["dLRA"] = (time.time() - start_time)
     start_time = time.time()
+    '''
 
     # number of nodes (N)
     num_nodes = A.shape[0]
@@ -1336,13 +1363,19 @@ def gen_topol_feats_bipartite(A, edge_s):
     num_edges = int(np.sum(A)/2)
     
     # construct a dictionary of the features
-    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
-         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 'num_triangles_2':numtriang2_edges, \
+    #d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
+    #     'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 'num_triangles_2':numtriang2_edges, \
+    #     'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 'ave_neigh_deg2':ave_neigh_deg2_edges,\
+    #     'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
+    #     'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'LHN':LHN_edges, 'svd_edges':svd_edges,'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean,\
+    #     'svd_edges_approx':svd_edges_approx,'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
+    #     'num_nodes':num_nodes, 'num_edges':num_edges}
+    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'ave_deg_net':ave_deg_net, \
+         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, \
          'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 'ave_neigh_deg2':ave_neigh_deg2_edges,\
-         'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
-         'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'LHN':LHN_edges, 'svd_edges':svd_edges,'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean,\
-         'svd_edges_approx':svd_edges_approx,'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
-         'num_nodes':num_nodes, 'num_edges':num_edges}     
+         'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, \
+         'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'short_path':short_path_edges, 'diam_net':diam_net, \
+         'num_nodes':num_nodes, 'num_edges':num_edges}    
     
     # construct a dataframe of the features
     df_feat = pd.DataFrame(data=d)
@@ -1427,7 +1460,7 @@ def creat_full_set_temporal(df_t,df_f,predict):
      
     return df_all
 
-def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
+def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict, is_unipartite=True):
     
     """ 
     Uses feature data to cross-validate, over-sample and fit, then save numpy files with features for later use.
@@ -1451,20 +1484,9 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict):
     """ 
     This functiion multiplied the column number and attache verything that is important in the function
     """
-    
-    feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
-           'num_triangles_1', 'num_triangles_2', 
-           'pag_rank1', 'pag_rank2', 'clust_coeff1', 'clust_coeff2',
-           'ave_neigh_deg1', 'ave_neigh_deg2', 'eig_cent1', 'eig_cent2',
-           'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1',
-           'betw_cent2', 'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2',
-           'pref_attach', 'LHN', 'svd_edges', 'svd_edges_dot', 'svd_edges_mean',
-           'svd_edges_approx', 'svd_edges_dot_approx', 'svd_edges_mean_approx',
-           'short_path', 'deg_assort', 'transit_net', 'diam_net',
-           'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']  
-    #'page_rank_pers_edges', removed
-    
-    
+
+    feature_set = uni_feature_set if is_unipartite else bi_feature_set
+
     full_feat_set = [None] * ((predict)*len(feature_set))
     len_of_feat = len(feature_set)
     
@@ -2672,10 +2694,12 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
 
     column_name = list(df_t_tr_.columns)
 
+    n_feat = int(len(column_name)/(predict_num + 2))
+
     # here we plus two because we need to plus 2 to include the feat names of the original layer
     # but in fact we do not use them.
     for j in range(1,predict_num+2):  
-        for i in range (44*j, 44*(j+1)):
+        for i in range (n_feat*j, n_feat*(j+1)):
             column_name[i] = column_name[i]+"_"+str(j)
     
 
@@ -2718,7 +2742,7 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
 
     # here we only +1 , because we are ignoring the last layer of information. which is just the original matrix.
     # the plus one is plusing towards the length of the feature vectors. 
-    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1)
+    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, is_unipartite)
 
     path_to_data = './feature_metrices' +"/"+str(name)
     path_to_results = './results'+"/"+str(name)
