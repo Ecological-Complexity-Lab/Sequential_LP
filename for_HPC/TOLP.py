@@ -36,11 +36,12 @@ uni_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
            'svd_edges_approx', 'svd_edges_dot_approx', 'svd_edges_mean_approx',
            'short_path', 'deg_assort', 'transit_net', 'diam_net',
            'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']
-bi_feature_set = ['ave_deg_net', 'var_deg_net', 'ave_clust_net', 'pag_rank1', 
-        'pag_rank2', 'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2',
-        'eig_cent1', 'eig_cent2', 'deg_cent1', 'deg_cent2', 
-        'ktz_cent1', 'ktz_cent2', 'short_path', 'diam_net', 
-        'num_nodes', 'num_edges']   
+bi_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net', 'pag_rank1', 'pag_rank2', 
+         'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2', 'eig_cent1', 'eig_cent2', 
+         'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1', 'betw_cent2', 
+         'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2', 'pref_attach', 'svd_edges',
+         'svd_edges_dot','svd_edges_mean', 'svd_edges_approx','svd_edges_dot_approx','svd_edges_mean_approx', 
+         'short_path', 'diam_net', 'num_nodes', 'num_edges']
 
 
 ###### Auxilary function ########
@@ -1141,18 +1142,6 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["KC_i"] = (time.time() - start_time)
     start_time = time.time()
-        
-    # Jaccard’s coefficient of neighbor sets of i, j (JC)
-    # will always be 0 for bipartite networks
-    #jacc_coeff_obj = nx.jaccard_coefficient(G,edge_s)
-    #jacc_coeff_edges = []
-    #for uu,vv,jj in jacc_coeff_obj:
-    #    jacc_coeff_edges.append([uu,vv,jj])   
-    #df_jacc_coeff = pd.DataFrame(jacc_coeff_edges, columns=['i','j','jacc_coeff'])
-    #df_jacc_coeff['ind'] = df_jacc_coeff.index
-
-    #time_cost["JC"] = (time.time() - start_time)
-    #start_time = time.time()
 
     # resource allocation index of i, j (RA) - should be the same as in unipartite
     res_alloc_ind_obj = nx.resource_allocation_index(G, edge_s)
@@ -1180,61 +1169,41 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     #time_cost["AA"] = (time.time() - start_time)
     #start_time = time.time()
-
-    # preferential attachment (degree product) of i, j (PA)
-        # returns 0 for bipartite networks
-    #pref_attach_obj = nx.preferential_attachment(G, edge_s)
-    #pref_attach_edges = []
-    #for uu,vv,jj in pref_attach_obj:
-    #    pref_attach_edges.append([uu,vv,jj])
-    #df_pref_attach = pd.DataFrame(pref_attach_edges, columns=['i','j','pref_attach'])
-    #df_pref_attach['ind'] = df_pref_attach.index
-
-    #time_cost["PA"] = (time.time() - start_time)
-    #start_time = time.time()
-
     
-    # TODO: go over each feature, and convert to bipartite version
-    # TODO 2:start running with only some of the features. later we cann add more.
-
-    '''
     # global features:
     # similarity of connections in the graph with respect to the node degree
     # degree assortativity (DA)
-    deg_ass_net = nx.degree_assortativity_coefficient(G)
+    # returns -1
+    #deg_ass_net = nx.degree_assortativity_coefficient(G)
 
-    time_cost["DA"] = (time.time() - start_time)
-    start_time = time.time()
+    #time_cost["DA"] = (time.time() - start_time)
+    #start_time = time.time()
 
     # transitivity: fraction of all possible triangles present in G
     # network transitivity (clustering coefficient) (NT)
-    transit_net = nx.transitivity(G)  
+    #transit_net = nx.bipartite..transitivity(G)  
+    #time_cost["NT"] = (time.time() - start_time)
+    #start_time = time.time()
+
     # network diameter (ND)
-
-    time_cost["NT"] = (time.time() - start_time)
-    start_time = time.time()
-
-    '''
     try:
         diam_net = nx.diameter(G)
     except:
         diam_net = np.inf
     diam_net = [diam_net for ii in range(len(edge_s))]
-    '''
+    
     ave_deg_net = [ave_deg_net for ii in range(len(edge_s))]
     var_deg_net = [var_deg_net for ii in range(len(edge_s))]
     ave_clust_net = [ave_clust_net for ii in range(len(edge_s))]
-    deg_ass_net = [deg_ass_net for ii in range(len(edge_s))]
-    transit_net = [transit_net for ii in range(len(edge_s))]
     com_ne = []
     for ee in range(len(edge_s)):
         com_ne.append(len(sorted(nx.common_neighbors(G,edge_s[ee][0],edge_s[ee][1]))))
 
     time_cost["global_stuff"] = (time.time() - start_time)
     start_time = time.time()
-         
+
     # closeness centralities for i and j (CC_i, CC_j)
-    closn_cent_nodes_obj = nx.closeness_centrality(G)
+    closn_cent_nodes_obj = nx.bipartite.closeness_centrality(G, group1_nodes)
     closn_cent_nodes = []
     for nn in range(len(nodes)):
         closn_cent_nodes.append(closn_cent_nodes_obj[nn])
@@ -1247,8 +1216,7 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["CC_i"] = (time.time() - start_time)
     start_time = time.time()
-    
-    '''    
+        
     # shortest path between i, j (SP)        
     short_Mat_aux = nx.shortest_path_length(G)
     short_Mat={}
@@ -1266,8 +1234,9 @@ def gen_topol_feats_bipartite(A, edge_s):
     time_cost["SP"] = (time.time() - start_time)
     start_time = time.time()
     
-    '''       
+           
     # load centralities for i and j (LC_i, LC_j)
+    # mostly 0s - but not all
     load_cent_nodes_obj = nx.load_centrality(G,normalized=True)
     load_cent_nodes = []
     for nn in range(len(nodes)):
@@ -1283,7 +1252,13 @@ def gen_topol_feats_bipartite(A, edge_s):
     start_time = time.time()
 
 
+
+    
+    # TODO: go over each feature, and convert to bipartite version
+    # TODO 2:start running with only some of the features. later we cann add more.
+    
     # shortest-path betweenness centralities for i and j (SPBC_i, SPBC_j)
+    # exactly the same as load_centrality?
     betw_cent_nodes_obj = nx.betweenness_centrality(G,normalized=True)
     betw_cent_nodes = []
     for nn in range(len(nodes)):
@@ -1298,7 +1273,8 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     time_cost["SPBC_i"] = (time.time() - start_time)
     start_time = time.time()   
-        
+    
+    # TODO wht does it mean?
     neigh_ = {}
     for nn in range(len(nodes)):
         neigh_[nn] = np.where(A[nn,:])[0]
@@ -1307,6 +1283,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     for ee in range(len(edge_s)):
         df_pref_attach.append(len(neigh_[edge_s[ee][0]])*len(neigh_[edge_s[ee][1]]))
     
+    # SVD based features
     U, sig, V = np.linalg.svd(A, full_matrices=False)
     S = np.diag(sig)
     Atilda = np.dot(U, np.dot(S, V))
@@ -1327,19 +1304,12 @@ def gen_topol_feats_bipartite(A, edge_s):
     time_cost["SVD"] = (time.time() - start_time)
     start_time = time.time()
     
-    # Leicht-Holme-Newman index of neighbor sets of i, j (LHN)
-    f_LHN = lambda num,den: 0 if (num==0 and den==0) else float(num)/den 
-    LHN_edges = [f_LHN(num,den) for num,den in zip(np.array(com_ne),np.array(df_pref_attach))]
-    
     U, sig, V = np.linalg.svd(A)
     S = linalg.diagsvd(sig, A.shape[0], A.shape[1])
     S_trunc = S.copy()
     S_trunc[S_trunc < sig[int(np.ceil(np.sqrt(A.shape[0])))]] = 0
     Atilda = np.dot(np.dot(U, S_trunc), V)
     Atilda = np.array(Atilda)
-
-    time_cost["LHN"] = (time.time() - start_time)
-    start_time = time.time()
    
     f_mean = lambda x: np.mean(x) if len(x)>0 else 0
     # an approximation of LRA (LRA-approx)
@@ -1355,7 +1325,6 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     time_cost["dLRA"] = (time.time() - start_time)
     start_time = time.time()
-    '''
 
     # number of nodes (N)
     num_nodes = A.shape[0]
@@ -1364,18 +1333,29 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     # construct a dictionary of the features
     #d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
-    #     'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 'num_triangles_2':numtriang2_edges, \
-    #     'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 'ave_neigh_deg2':ave_neigh_deg2_edges,\
-    #     'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
-    #     'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'LHN':LHN_edges, 'svd_edges':svd_edges,'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean,\
-    #     'svd_edges_approx':svd_edges_approx,'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
+    #     'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 
+    #     'num_triangles_2':numtriang2_edges, 'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 
+    #     'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 
+    #     'ave_neigh_deg2':ave_neigh_deg2_edges, 'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 
+    #     'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 
+    #     'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
+    #     'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 
+    #     'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'LHN':LHN_edges, 'svd_edges':svd_edges,
+    #     'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
+    #     'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
+    #     'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
     #     'num_nodes':num_nodes, 'num_edges':num_edges}
-    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'ave_deg_net':ave_deg_net, \
-         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, \
-         'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 'ave_neigh_deg2':ave_neigh_deg2_edges,\
-         'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, \
-         'ktz_cent1':ktz_cent1_edges, 'ktz_cent2':ktz_cent2_edges, 'short_path':short_path_edges, 'diam_net':diam_net, \
-         'num_nodes':num_nodes, 'num_edges':num_edges}    
+    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
+         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 
+         'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 
+         'ave_neigh_deg2':ave_neigh_deg2_edges, 'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 
+         'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 
+         'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
+         'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 
+         'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'svd_edges':svd_edges,
+         'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
+         'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
+         'short_path':short_path_edges, 'diam_net':diam_net, 'num_nodes':num_nodes, 'num_edges':num_edges}  
     
     # construct a dataframe of the features
     df_feat = pd.DataFrame(data=d)
