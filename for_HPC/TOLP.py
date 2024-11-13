@@ -1022,26 +1022,9 @@ def gen_topol_feats_bipartite(A, edge_s):
     time_cost["chosen features"] = (time.time() - start_time)
     start_time = time.time()    
 
-    # triangeles are not defined for bipartite networks:
-    # TODO: butterflies?
-
-    # local number of triangles for i and j (LNT_i, LNT_j)  
-    #numtriang_nodes_obj = nx.bipartite.triangles(G)
-    #numtriang_nodes = []
-    #for nn in range(len(nodes)):
-    #    numtriang_nodes.append(numtriang_nodes_obj[nn])
-     
-    #numtriang1_edges = []
-    #numtriang2_edges = []
-    #for ee in range(len(edge_s)):
-    #    numtriang1_edges.append(numtriang_nodes[edge_s[ee][0]])
-    #    numtriang2_edges.append(numtriang_nodes[edge_s[ee][1]])
-
-    #time_cost["LNT"] = (time.time() - start_time)
-    #start_time = time.time()
+    # TODO: add butterflies?
          
     # Page rank values for i and j (PR_i, PR_j) 
-    # TODO this? https://scikit-network.readthedocs.io/en/latest/tutorials/ranking/pagerank.html
     page_rank_nodes_obj = nx.pagerank(G)
     page_rank_nodes = []
     for nn in range(len(nodes)):
@@ -1104,7 +1087,8 @@ def gen_topol_feats_bipartite(A, edge_s):
 
 	# eigenvector centralities for i and j (EC_i, EC_j)
     # TODO: is ok to use? PageRank is a variant of eigenvector centrality
-    tr = 1
+    # looks like this needs a special Generalization for bipartite
+    """tr = 1
     toler = 1e-6
     while tr == 1:
         try:
@@ -1124,11 +1108,11 @@ def gen_topol_feats_bipartite(A, edge_s):
         eig_cent2_edges.append(eig_cent_nodes[edge_s[ee][1]])
 
     time_cost["EC_i"] = (time.time() - start_time)
-    start_time = time.time()
+    start_time = time.time()"""
 
     # Katz centralities for i and j (KC_i, KC_j)
-    # TODO also a kind of eigenvector centrality
     # TODO this? https://scikit-network.readthedocs.io/en/latest/tutorials/ranking/katz.html
+    # looks like its relevant to bipartite as well
     ktz_cent_nodes_obj = nx.katz_centrality_numpy(G)
     ktz_cent_nodes = []
     for nn in range(len(nodes)):
@@ -1142,62 +1126,22 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["KC_i"] = (time.time() - start_time)
     start_time = time.time()
-
-    # resource allocation index of i, j (RA) - should be the same as in unipartite
-    res_alloc_ind_obj = nx.resource_allocation_index(G, edge_s)
-    res_alloc_ind_edges = []
-    for uu,vv,jj in res_alloc_ind_obj:
-        res_alloc_ind_edges.append([uu,vv,jj])
-    df_res_alloc_ind = pd.DataFrame(res_alloc_ind_edges, columns=['i','j','res_alloc_ind'])    
-    df_res_alloc_ind['ind'] = df_res_alloc_ind.index
-
-    time_cost["RA"] = (time.time() - start_time)
-    start_time = time.time()
-
-  	# Adamic/Adar index of i, j (AA)
-    # returns 0 for bipartite networks
-    #adam_adar_obj =  nx.adamic_adar_index(G, edge_s)
-    #adam_adar_edges = []
-    #for uu,vv,jj in adam_adar_obj:
-    #    adam_adar_edges.append([uu,vv,jj])
-    #df_adam_adar = pd.DataFrame(adam_adar_edges, columns=['i','j','adam_adar'])
-    #df_adam_adar['ind'] = df_adam_adar.index
-    
-    #df_merge = pd.merge(df_jacc_coeff,df_res_alloc_ind, on=['ind','i','j'], sort=False)
-    #df_merge = pd.merge(df_merge,df_adam_adar, on=['ind','i','j'], sort=False)
-    df_merge = df_res_alloc_ind
-
-    #time_cost["AA"] = (time.time() - start_time)
-    #start_time = time.time()
     
     # global features:
     # similarity of connections in the graph with respect to the node degree
     # degree assortativity (DA)
     # returns -1
-    #deg_ass_net = nx.degree_assortativity_coefficient(G)
+    deg_ass_net = nx.degree_assortativity_coefficient(G)
 
-    #time_cost["DA"] = (time.time() - start_time)
-    #start_time = time.time()
-
-    # transitivity: fraction of all possible triangles present in G
-    # network transitivity (clustering coefficient) (NT)
-    #transit_net = nx.bipartite..transitivity(G)  
-    #time_cost["NT"] = (time.time() - start_time)
-    #start_time = time.time()
-
-    # network diameter (ND)
-    try:
-        diam_net = nx.diameter(G)
-    except:
-        diam_net = np.inf
-    diam_net = [diam_net for ii in range(len(edge_s))]
+    time_cost["DA"] = (time.time() - start_time)
+    start_time = time.time()
     
+    # turn network values into lists of values
     ave_deg_net = [ave_deg_net for ii in range(len(edge_s))]
     var_deg_net = [var_deg_net for ii in range(len(edge_s))]
     ave_clust_net = [ave_clust_net for ii in range(len(edge_s))]
-    com_ne = []
-    for ee in range(len(edge_s)):
-        com_ne.append(len(sorted(nx.common_neighbors(G,edge_s[ee][0],edge_s[ee][1]))))
+    deg_ass_net = [deg_ass_net for ii in range(len(edge_s))]
+
 
     time_cost["global_stuff"] = (time.time() - start_time)
     start_time = time.time()
@@ -1250,12 +1194,6 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["LC_i"] = (time.time() - start_time)
     start_time = time.time()
-
-
-
-    
-    # TODO: go over each feature, and convert to bipartite version
-    # TODO 2:start running with only some of the features. later we cann add more.
     
     # shortest-path betweenness centralities for i and j (SPBC_i, SPBC_j)
     # exactly the same as load_centrality?
@@ -1273,15 +1211,6 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     time_cost["SPBC_i"] = (time.time() - start_time)
     start_time = time.time()   
-    
-    # TODO wht does it mean?
-    neigh_ = {}
-    for nn in range(len(nodes)):
-        neigh_[nn] = np.where(A[nn,:])[0]
-    
-    df_pref_attach = []
-    for ee in range(len(edge_s)):
-        df_pref_attach.append(len(neigh_[edge_s[ee][0]])*len(neigh_[edge_s[ee][1]]))
     
     # SVD based features
     U, sig, V = np.linalg.svd(A, full_matrices=False)
@@ -1345,7 +1274,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     #     'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
     #     'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
     #     'num_nodes':num_nodes, 'num_edges':num_edges}
-    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
+    d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'ave_deg_net':ave_deg_net, \
          'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 
          'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 
          'ave_neigh_deg2':ave_neigh_deg2_edges, 'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 
@@ -1355,7 +1284,7 @@ def gen_topol_feats_bipartite(A, edge_s):
          'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'svd_edges':svd_edges,
          'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
          'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
-         'short_path':short_path_edges, 'diam_net':diam_net, 'num_nodes':num_nodes, 'num_edges':num_edges}  
+         'short_path':short_path_edges, 'num_nodes':num_nodes, 'num_edges':num_edges}  
     
     # construct a dataframe of the features
     df_feat = pd.DataFrame(data=d)
