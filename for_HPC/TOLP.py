@@ -36,12 +36,12 @@ uni_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
            'svd_edges_approx', 'svd_edges_dot_approx', 'svd_edges_mean_approx',
            'short_path', 'deg_assort', 'transit_net', 'diam_net',
            'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']
-bi_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net', 'pag_rank1', 'pag_rank2', 
-         'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2', 'eig_cent1', 'eig_cent2', 
-         'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1', 'betw_cent2', 
-         'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2', 'pref_attach', 'svd_edges',
-         'svd_edges_dot','svd_edges_mean', 'svd_edges_approx','svd_edges_dot_approx','svd_edges_mean_approx', 
-         'short_path', 'diam_net', 'num_nodes', 'num_edges']
+bi_feature_set = {'ave_deg_net', 'var_deg_net', 'ave_clust_net', 'pag_rank1', 'pag_rank2', 
+         'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2', 'deg_cent1', 
+         'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1', 'betw_cent2', 'load_cent1', 
+         'load_cent2', 'ktz_cent1', 'ktz_cent2', 'svd_edges', 'svd_edges_dot','svd_edges_mean', 
+         'svd_edges_approx', 'svd_edges_dot_approx','svd_edges_mean_approx', 
+         'short_path', 'deg_assort', 'num_nodes', 'num_edges', "redun1_edges", "redun2_edges"}
 
 
 ###### Auxilary function ########
@@ -1170,7 +1170,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     
     # shortest-path betweenness centralities for i and j (SPBC_i, SPBC_j)
     # exactly the same as load_centrality?
-    betw_cent_nodes_obj = nx.betweenness_centrality(G,normalized=True)
+    betw_cent_nodes_obj = nx.bipartite.betweenness_centrality(G, group1_nodes)
     betw_cent_nodes = []
     for nn in range(len(nodes)):
         betw_cent_nodes.append(betw_cent_nodes_obj[nn])
@@ -1236,6 +1236,26 @@ def gen_topol_feats_bipartite(A, edge_s):
     # number of observed edges (OE)
     num_edges = int(np.sum(A)/2)
     
+
+    # bipartite specific features:
+    # node redundancy
+    deg = G.degree()
+    # get nodes with degrees that are over 2
+    deg_big = {k: v for k, v in dict(deg).items() if v > 1}
+    nd = nx.bipartite.node_redundancy(G, deg_big.keys())
+    
+    redun1_edges = []
+    redun2_edges = []
+    for ee in range(len(edge_s)):
+        n1=edge_s[ee][0]
+        n2=edge_s[ee][1]
+
+        val1 = nd[n1] if n1 in nd.keys() else 0 # maybe a better value is inf? or 0 with everything exp transformed
+        val2 = nd[n2] if n2 in nd.keys() else 0 # maybe a better value is inf? or 0 with everything exp transformed
+
+        redun1_edges.append(val1)
+        redun2_edges.append(val2)
+
     # construct a dictionary of the features
     #d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
     #     'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 
@@ -1262,7 +1282,7 @@ def gen_topol_feats_bipartite(A, edge_s):
          'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
          'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
          'short_path':short_path_edges, 'deg_assort':deg_ass_net, \
-         'num_nodes':num_nodes, 'num_edges':num_edges}
+         'num_nodes':num_nodes, 'num_edges':num_edges, "redun1_edges":redun1_edges, "redun2_edges":redun2_edges}
     
     # construct a dataframe of the features
     df_feat = pd.DataFrame(data=d)
