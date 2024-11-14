@@ -1085,34 +1085,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     time_cost["DC_i"] = (time.time() - start_time)
     start_time = time.time()
 
-	# eigenvector centralities for i and j (EC_i, EC_j)
-    # TODO: is ok to use? PageRank is a variant of eigenvector centrality
-    # looks like this needs a special Generalization for bipartite
-    """tr = 1
-    toler = 1e-6
-    while tr == 1:
-        try:
-            eig_cent_nodes_obj = nx.eigenvector_centrality(G,tol = toler)
-            tr = 0
-        except:
-            toler = toler*1e1
-    
-    eig_cent_nodes = []
-    for nn in range(len(nodes)):
-        eig_cent_nodes.append(eig_cent_nodes_obj[nn])
-     
-    eig_cent1_edges = []
-    eig_cent2_edges = []
-    for ee in range(len(edge_s)):
-        eig_cent1_edges.append(eig_cent_nodes[edge_s[ee][0]])
-        eig_cent2_edges.append(eig_cent_nodes[edge_s[ee][1]])
-
-    time_cost["EC_i"] = (time.time() - start_time)
-    start_time = time.time()"""
-
     # Katz centralities for i and j (KC_i, KC_j)
-    # TODO this? https://scikit-network.readthedocs.io/en/latest/tutorials/ranking/katz.html
-    # looks like its relevant to bipartite as well
     ktz_cent_nodes_obj = nx.katz_centrality_numpy(G)
     ktz_cent_nodes = []
     for nn in range(len(nodes)):
@@ -1224,6 +1197,9 @@ def gen_topol_feats_bipartite(A, edge_s):
     # dot product of columns i and j in LRA via SVD for each pair of nodes i, j
     svd_edges_dot = []
     # average of entries i and j’s neighbors in low rank approximation
+    neigh_ = {}
+    for nn in range(len(nodes)):
+        neigh_[nn] = np.where(A[nn,:])[0]
     svd_edges_mean = []
     for ee in range(len(edge_s)):
         svd_edges.append(Atilda[edge_s[ee][0],edge_s[ee][1]])
@@ -1275,21 +1251,22 @@ def gen_topol_feats_bipartite(A, edge_s):
     #     'short_path':short_path_edges, 'deg_assort':deg_ass_net, 'transit_net':transit_net, 'diam_net':diam_net, \
     #     'num_nodes':num_nodes, 'num_edges':num_edges}
     d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'ave_deg_net':ave_deg_net, \
-         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 
+         'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net,
+         'pag_rank1':page_rank1_edges, 'pag_rank2':page_rank2_edges, 
          'clust_coeff1':clust1_edges, 'clust_coeff2':clust2_edges, 'ave_neigh_deg1':ave_neigh_deg1_edges, 
-         'ave_neigh_deg2':ave_neigh_deg2_edges, 'eig_cent1':eig_cent1_edges, 'eig_cent2':eig_cent2_edges, 
+         'ave_neigh_deg2':ave_neigh_deg2_edges,
          'deg_cent1':deg_cent1_edges, 'deg_cent2':deg_cent2_edges, 'clos_cent1':closn_cent1_edges, 
          'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
          'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 
-         'ktz_cent2':ktz_cent2_edges, 'pref_attach':df_pref_attach, 'svd_edges':svd_edges,
+         'ktz_cent2':ktz_cent2_edges, 'svd_edges':svd_edges,
          'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
          'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
-         'short_path':short_path_edges, 'num_nodes':num_nodes, 'num_edges':num_edges}  
+         'short_path':short_path_edges, 'deg_assort':deg_ass_net, \
+         'num_nodes':num_nodes, 'num_edges':num_edges}
     
     # construct a dataframe of the features
     df_feat = pd.DataFrame(data=d)
     df_feat['ind'] = df_feat.index
-    df_feat = pd.merge(df_feat,df_merge, on=['ind','i','j'], sort=False)
     return df_feat, time_cost
 
 def gen_topol_feats_temporal(A_orig, A_tr, edge_s, is_unipartite=True): 
