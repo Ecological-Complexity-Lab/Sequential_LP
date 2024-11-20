@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 import numpy as np
 import pandas as pd
 import networkx as nx
+import itertools
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import confusion_matrix
@@ -987,7 +988,8 @@ def gen_topol_feats_bipartite(A, edge_s):
         edges = [(int(iii),int(jjj)) for iii,jjj in edges]
 
     # get the set of nodes only in one of the bipartite group
-    group1_nodes = list(set((edge_s[:,0])))
+    group1_nodes = list(set((edge_s[:,0]))) # TODO fix
+    group2_nodes = list(set((edge_s[:,1])))
 
     # define graph
     G=nx.Graph()
@@ -1021,8 +1023,6 @@ def gen_topol_feats_bipartite(A, edge_s):
 
     time_cost["chosen features"] = (time.time() - start_time)
     start_time = time.time()    
-
-    # TODO: add butterflies?
          
     # Page rank values for i and j (PR_i, PR_j) 
     page_rank_nodes_obj = nx.pagerank(G)
@@ -1256,6 +1256,70 @@ def gen_topol_feats_bipartite(A, edge_s):
         redun1_edges.append(val1)
         redun2_edges.append(val2)
 
+    # latapy clustering
+    ltpy_clust = nx.bipartite.latapy_clustering(G)
+
+    ltpy_clust1_edges = []
+    ltpy_clust2_edges = []
+    for ee in range(len(edge_s)):
+        ltpy_clust1_edges.append(ltpy_clust[edge_s[ee][0]])
+        ltpy_clust2_edges.append(ltpy_clust[edge_s[ee][1]])
+
+    # hits
+    h, a = nx.hits(G)
+
+    hits_h1_edges = []
+    hits_h2_edges = []
+    hits_a1_edges = []
+    hits_a2_edges = []
+    for ee in range(len(edge_s)):
+        hits_h1_edges.append(h[edge_s[ee][0]])
+        hits_h2_edges.append(h[edge_s[ee][1]])
+        hits_a1_edges.append(a[edge_s[ee][0]])
+        hits_a2_edges.append(a[edge_s[ee][1]])
+
+
+    isolantes = nx.isolates(G)
+    isolates1_edges = []
+    isolates2_edges = []
+    for ee in range(len(edge_s)):
+        isolates1_edges.append(1 if edge_s[ee][0] in isolantes else 0)
+        isolates2_edges.append(1 if edge_s[ee][1] in isolantes else 0)
+
+
+    # link level features
+    
+    possible_edges = list(itertools.product(group1_nodes, group2_nodes))
+    non_edges = list(set(possible_edges).difference(set(list(map(tuple, edges)))))
+
+    #preferential attachment
+    pa_results = list(nx.preferential_attachment(G))
+    dict_pa = {(i, j): p for i, j, p in pa_results}
+
+    pref_attach = []
+    for ee in range(len(edge_s)):
+        pref_attach.append(dict_pa[(edge_s[ee][0],edge_s[ee][1])])
+
+    # bridges
+    bridges = bridges_helper(G, group1_nodes, non_edges)
+
+    brdg_edges = []
+    for ee in range(len(edge_s)):
+        a = edge_s[ee][0]
+        b = edge_s[ee][1]
+        brdg_edges.append(1 if (a, b) in bridges else 0)
+
+    #friends measure
+    frnds = edge_features_helper(G, group1_nodes, group2_nodes, friends_measure_helper, edges, non_edges)
+    dict_frnds = {(i, j): p for i, j, p in frnds}
+
+    frnds_edges = []
+    for ee in range(len(edge_s)):
+        val = 0
+        if (edge_s[ee][0],edge_s[ee][1]) in dict_frnds:
+            val = dict_frnds[(edge_s[ee][0],edge_s[ee][1])]
+        frnds_edges.append(val)
+
     # construct a dictionary of the features
     #d = {'i':edge_pairs_f_i, 'j':edge_pairs_f_j, 'com_ne':com_ne, 'ave_deg_net':ave_deg_net, \
     #     'var_deg_net':var_deg_net, 'ave_clust_net':ave_clust_net, 'num_triangles_1':numtriang1_edges, 
@@ -1288,6 +1352,82 @@ def gen_topol_feats_bipartite(A, edge_s):
     df_feat = pd.DataFrame(data=d)
     df_feat['ind'] = df_feat.index
     return df_feat, time_cost
+
+# Friends measure
+def friends_measure_helper(G, u, v):
+    '''
+    Compute friends measure for a pair of nodes
+
+    Parameters
+    ----------
+    G : networkx.Graph
+        network.
+    u : ?
+        node.
+    v : ?
+        node.
+
+    Returns
+    -------
+    score : pd.DataFrame
+        An edgelist format of a sampled network, including the features as columns.
+
+    '''
+
+    score = 0
+    for x in G[u]:
+        for y in G[v]:
+            if G.has_edge(x,y): # or x == y | dropped as it will be used only for bipartite
+                score = score + 1
+    return [(u, v, score)]
+def edge_features_helper(B, top_nodes, bottom_nodes, func, edges, non_edges=None):
+    result = []
+    
+    # 1.1 Deal with functions who cannot compute measures for given set of nodes
+    if non_edges != None:
+        for u, v in non_edges:
+            try:
+                value = func(B, u, v)
+            except nx.NetworkXNoPath:
+                value = [(u, v, 0)]
+            
+            result += value
+
+    # 2. Deal with class == 1 (existing links)
+    B_edge_remove = B.copy() # avoid remove_edge altering original object
+
+    for u, v in edges:
+        B_edge_remove.remove_edge(u, v)
+
+        try:
+            value = func(B_edge_remove, u, v)
+        except nx.NetworkXNoPath:
+            value = [(u, v, 0)]
+
+        result += value
+
+        B_edge_remove.add_edge(u, v)
+    
+    return result
+def bridges_helper(B, bottom_nodes, non_edges):
+    
+    # get current bridges out of existing links
+    bridges = list(nx.bridges(B)) 
+    bridges = [(x, y) if x in bottom_nodes else (y, x) for x, y in bridges] # fix mixing of species order made by nx.bridges() + add a value
+
+    B_copy = B.copy() # don't modify original graph
+
+    # get possible bridges out of non-existing links
+    for bottom, top in non_edges:
+        B_copy.add_edge(bottom, top)
+        bridges_ = list(nx.bridges(B_copy))
+
+        if bridges_.count((bottom, top)) > 0 or bridges_.count((top, bottom)) > 0:
+            bridges.append((bottom, top))
+
+        B_copy.remove_edge(bottom, top)
+    
+    return bridges
 
 def gen_topol_feats_temporal(A_orig, A_tr, edge_s, is_unipartite=True): 
     
