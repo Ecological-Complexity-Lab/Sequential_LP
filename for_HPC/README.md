@@ -48,7 +48,8 @@ The file should be a csv file structured of 3 columns, with the first row as col
 The tool is meant to be used only with indexes and not with node labels or layer labels.
 The indexes should be given beforehand and the ids with corresponding lables should be saved elsewhere.
 
-*Importent*: layer IDs should be in the range of 1 .. n_layers. 
+*Importent*: layer IDs should be in the range of 1 .. n_layers.
+Also - nodes should labeled from 0 .. N-1 (with integer as their index)
 
 For an example of assigning ids in R, see `prepare_for_temporal_lp.R` available under  `example` folder, 
 that prepares the example data for usage in the tool.

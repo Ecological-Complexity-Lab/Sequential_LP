@@ -44,7 +44,7 @@ small_study %>% group_by(cdate) %>% summarise(n=n())
 small_study %>% select(cdate, lower, higher)
 
 nodes <- unique(c(small_study$lower, small_study$higher))
-nodes <- tibble(name=nodes, ID=1:length(nodes))
+nodes <- tibble(name=nodes, ID=0:(length(nodes)-1))
 
 #save only layers with more then one edge
 layers <- small_study %>% group_by(cdate) %>% summarise(n=n()) %>% 
