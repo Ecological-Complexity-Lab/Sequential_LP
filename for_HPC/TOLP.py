@@ -567,7 +567,7 @@ def model_selection(path_to_data, path_to_results, n_depths, n_ests):
     print("best parameters for random forest are: n_depth: "+str(n_depth)+", and n_estimators: "+str(ne_est))
     return n_depth, ne_est
 
-def gen_topol_feats_timed(A, edge_s): 
+def gen_topol_feats_timed(A, edge_s, _): 
     
     """ 
     REMOVED PPR
@@ -972,7 +972,7 @@ def gen_topol_feats_timed(A, edge_s):
     df_feat = pd.merge(df_feat,df_merge, on=['ind','i','j'], sort=False)
     return df_feat, time_cost
 
-def gen_topol_feats_bipartite(A, edge_s): 
+def gen_topol_feats_bipartite(A, edge_s, bi_groups): 
     
     """ 
     calculates features relevant to a bipartite network
@@ -981,7 +981,7 @@ def gen_topol_feats_bipartite(A, edge_s):
     """
     
     time_cost = {}
-    _, edges = adj_to_nodes_edges(A)    
+    _, edges = adj_to_nodes_edges(A)   # TODO might need to do a different one for bipartite 
     nodes = [int(iii) for iii in range(A.shape[0])]
     N = len(nodes)
     if len(edges.shape)==1:
@@ -989,15 +989,18 @@ def gen_topol_feats_bipartite(A, edge_s):
     else:
         edges = [(int(iii),int(jjj)) for iii,jjj in edges]
 
-    # get the set of nodes only in one of the bipartite group
-    group1_nodes = list(set((edge_s[:,0]))) # TODO fix
-    group2_nodes = list(set((edge_s[:,1])))
 
     # define graph
     G=nx.Graph()
     G.add_nodes_from(nodes)
     G.add_edges_from(edges)
     
+    if not nx.bipartite.is_bipartite(G):
+        raise ("graph incorectly formated - is not bipartite.")
+
+    # get the set of nodes only in one of the bipartite group
+    group1_nodes = bi_groups[0]
+    group2_nodes = bi_groups[1]
 
     start_time = time.time()    
     
@@ -1422,7 +1425,7 @@ def bridges_helper(B, bottom_nodes, non_edges):
     
     return bridges
 
-def gen_topol_feats_temporal(A_orig, A_tr, edge_s, is_unipartite=True): 
+def gen_topol_feats_temporal(A_orig, A_tr, edge_s, bi_groups=[]): 
     
     """ 
     This function generate topological feature based on which layer it is
@@ -1439,19 +1442,19 @@ def gen_topol_feats_temporal(A_orig, A_tr, edge_s, is_unipartite=True):
     
     # Choose function to use as feature maker according to network structore
     calc_feats= gen_topol_feats_timed 
-    if not is_unipartite: # if bipartite then use the relevant function
+    if len(bi_groups) > 0: # if bipartite then use the relevant function
         calc_feats = gen_topol_feats_bipartite
 
     time_count = []
-    temp,time_cost = calc_feats( A_tr[0],edge_s)
+    temp,time_cost = calc_feats( A_tr[0],edge_s, bi_groups)
     time_count.append(time_cost)
     df_feat = temp
     for i in range(1,len(A_tr)):
-        temp,time_cost = calc_feats(A_tr[i],edge_s)
+        temp,time_cost = calc_feats(A_tr[i],edge_s, bi_groups)
         time_count.append(time_cost)
         df_feat = pd.concat([df_feat, temp], axis=1)
         
-    temp,time_cost = calc_feats(A_orig, edge_s)
+    temp,time_cost = calc_feats(A_orig, edge_s, bi_groups)
     time_count.append(time_cost)
     df_feat = pd.concat([df_feat, temp], axis=1)
     
@@ -2139,7 +2142,7 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
 
     return auprc, auc, precision, recall, featim, feats, cm
 
-def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite=True): 
+def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, bi_groups=[]): 
     
     """ 
     Assuming we have some information about the target layer
@@ -2229,9 +2232,9 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
         A_tr_temp.append(np.asmatrix(A_tr_new[i-predict_num]))
         ###########DIFFERENCE###################
         ###################################################################
-        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_f_tr[i-predict_num], is_unipartite)
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_f_tr[i-predict_num])
         df_f_tr.append(df_temp)
-        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num], is_unipartite)  
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num])  
         df_t_tr.append(df_temp)
     
     # generate features for the final stack (training)
@@ -2239,8 +2242,8 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
     edge_f_tr_final = np.loadtxt("./edge_tf_tr/edge_f_final"+"_"+str(name)+".txt").astype('int')
     A_tr_temp_ = A_tr[-(predict_num):]
     A_tr_temp_.append(np.asmatrix(A_train_))
-    df_f_temp, time1 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_f_tr_final, is_unipartite)
-    df_t_temp, time2 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_t_tr_final, is_unipartite)
+    df_f_temp, time1 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_f_tr_final)
+    df_t_temp, time2 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_t_tr_final)
 
     df_f_tr.append(df_f_temp)
     df_t_tr.append(df_t_temp)
@@ -2251,8 +2254,8 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
     
     A_tr_temp_ = A_tr[-(predict_num):]
     A_tr_temp_.append(np.asmatrix(A_train_))
-    df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho, is_unipartite)
-    df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho, is_unipartite)
+    df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho)
+    df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho)
     
     
     df_t_tr_columns = df_t_tr[0].columns
@@ -2317,6 +2320,203 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
     # here we only +1 , because we are ignoring the last layer of information. which is just the original matrix.
     # the plus one is plusing towards the length of the feature vectors. 
     creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, is_unipartite)
+
+    path_to_data = './feature_metrices' +"/"+str(name)
+    path_to_results = './results'+"/"+str(name)
+    n_depths = [3, 6] # here is a sample search space
+    n_ests = [25, 50, 100] # here is a sample search space
+
+    n_depth, n_est = model_selection(path_to_data, path_to_results, n_depths, n_ests)
+
+    auprc, auc, mcc, precision, recall, featim, cm = heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est)
+    feats = list(df_tr.columns)
+    
+    # save numpy predicted edge idetities 
+    np.savetxt(path_to_results + '/predicted_edges.txt', df_ho.iloc[:,0:3], delimiter=',')
+
+    return auprc, auc, mcc, precision, recall, featim, feats, cm
+
+def topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, name, bi_groups=[]): 
+    
+    """ 
+    Assuming we have some information about the target layer
+    """
+    try:
+        os.mkdir("./feature_metrices/")
+    except:
+        print(".")
+    try:
+        os.mkdir("./results/")
+    except:
+        print(".")
+    
+
+    edge_t_tr = []
+    edge_f_tr = []
+    df_f_tr = [] 
+    df_t_tr = []
+    
+    # assumption:
+    # rows ind: 0 - len(bi_groups[0]) (NOT included)
+    # columns ind: len(bi_groups[0]) - N (NOT including)
+
+    # to know the shift used to convert from matrix index to node index
+    nrows = col_ind_shift = len(bi_groups[0])
+    ncols = len(bi_groups[1])
+
+    #### convert target layer A to matrix
+    row = np.array(target_layer)[:,0]
+    col = np.array(target_layer)[:,1] - col_ind_shift
+    data_aux = np.ones(len(row))
+
+    A = csr_matrix((data_aux,(row,col)),shape=(nrows,ncols))
+    A[A>0] = 1 # in case some edges appear more than once
+    A = A.todense()
+    
+    row_tr = []
+    col_tr = []
+    data_aux_tr = []
+    A_tr = []
+
+    # Make a matrix from each edgelist layer used for the prediction
+    for i in range(len(edges_orig)):      
+        row_tr.append(np.array(edges_orig[i])[:,0])
+        col_tr.append(np.array(edges_orig[i])[:,1] - col_ind_shift)
+        data_aux_tr.append(np.ones(len(row_tr[i])))
+        
+        A_tr.append(csr_matrix((data_aux_tr[i],(row_tr[i],col_tr[i])),shape=(nrows,ncols)))
+        A_tr[i][A_tr[i]>0] = 1 
+        A_tr[i] = A_tr[i].todense()        
+        
+    
+    #### construct the holdout and training matrices from the original matrix
+    alpha = 0.8 # sampling rate for holdout matrix
+    alpha_ = 0.8 # sampling rate for training matrix
+    
+    A_ho = [] # matrixes represent the edges to holdout while training
+    A_tr_new = []
+    
+    for i in range(predict_num, len(A_tr)):
+        A_hold, A_train = gen_tr_ho_networks(A_tr[i], alpha, alpha_) # TODO make sure this works with bi-partite
+        A_ho.append(A_hold)
+        A_tr_new.append(A_train)
+        
+    ### here we are still missing the last training and testing label, we need to add the target layer
+    A_hold_, A_train_ = gen_tr_ho_networks(A, alpha, alpha_)    # TODO make sure this works with bi-partite
+    A_tr_new.append(A_train_)
+    ### A_ho is the test sets, the label is. The last element of A_ho is the true label where we try to predict. 
+    A_ho.append(A_hold_)
+    
+    ### Now the training and hold out matrix list is complete, we try to create the corresponding edge lists for each.
+    sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num, name)  # TODO make sure this works with bi-partite
+    
+    # run over the stacks and generate features (this is a long step)
+    for i in range(predict_num, len(A_tr)):
+        temp_true_edges = np.loadtxt("./edge_tf_tr/edge_t_{}".format(i)+"_"+str(name)+".txt").astype('int')
+        edge_t_tr.append(temp_true_edges)
+        
+        temp_false_edges = np.loadtxt("./edge_tf_tr/edge_f_{}".format(i)+"_"+str(name)+".txt").astype('int')       
+        edge_f_tr.append(temp_false_edges)
+        
+
+        A_tr_temp = A_tr[i-predict_num:i]
+        # this is where the originally matrix is added, and thus why there is predict_num +2 features
+        # however, we are always ignoring the last layer of feature, because essentially that's the true feature of the last layer
+        # and we just do not use that information, which is why the creat_numpy_file_temporal is only predict_num+1, not +2
+        # and thus we have the original information attached
+        # and for the completely missing case, creat_numpy_file_temporal does not have to +1 because we are ignoring the last layer
+        # #################################################################
+        A_tr_temp.append(np.asmatrix(A_tr_new[i-predict_num]))
+        ###########DIFFERENCE###################
+        ###################################################################
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_f_tr[i-predict_num], bi_groups)
+        df_f_tr.append(df_temp)
+        df_temp, time_temp = gen_topol_feats_temporal(A_tr[i], A_tr_temp, edge_t_tr[i-predict_num], bi_groups)  
+        df_t_tr.append(df_temp)
+    
+    # generate features for the final stack (training)
+    edge_t_tr_final= np.loadtxt("./edge_tf_tr/edge_t_final"+"_"+str(name)+".txt").astype('int')
+    edge_f_tr_final = np.loadtxt("./edge_tf_tr/edge_f_final"+"_"+str(name)+".txt").astype('int')
+    A_tr_temp_ = A_tr[-(predict_num):]
+    A_tr_temp_.append(np.asmatrix(A_train_))
+    df_f_temp, time1 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_f_tr_final, bi_groups)
+    df_t_temp, time2 = gen_topol_feats_temporal(A_hold_, A_tr_temp_, edge_t_tr_final, bi_groups)
+
+    df_f_tr.append(df_f_temp)
+    df_t_tr.append(df_t_temp)
+    
+    # generate features for the final stack (holdout data)
+    edge_t_ho= np.loadtxt("./edge_tf_true/edge_t"+"_"+str(name)+".txt").astype('int')
+    edge_f_ho= np.loadtxt("./edge_tf_true/edge_f"+"_"+str(name)+".txt").astype('int')
+    
+    A_tr_temp_ = A_tr[-(predict_num):]
+    A_tr_temp_.append(np.asmatrix(A_train_))
+    df_f_ho, time1 = gen_topol_feats_temporal(A, A_tr_temp_, edge_f_ho, bi_groups)
+    df_t_ho, time2 = gen_topol_feats_temporal(A, A_tr_temp_, edge_t_ho, bi_groups)
+    
+    
+    df_t_tr_columns = df_t_tr[0].columns
+    df_f_tr_columns = df_f_tr[0].columns    
+
+    v1 = df_t_tr[0].values
+    v2 = df_f_tr[0].values
+
+ 
+    #   return df_t_tr, df_f_tr, df_t_ho, df_f_ho  
+    df_t_tr_ = pd.DataFrame(data=v1, columns = df_t_tr_columns)
+    df_f_tr_ = pd.DataFrame(data=v2, columns = df_f_tr_columns)
+
+    column_name = list(df_t_tr_.columns)
+
+    n_feat = int(len(column_name)/(predict_num + 2))
+
+    # here we plus two because we need to plus 2 to include the feat names of the original layer
+    # but in fact we do not use them.
+    for j in range(1,predict_num+2):  
+        for i in range (n_feat*j, n_feat*(j+1)):
+            column_name[i] = column_name[i]+"_"+str(j)
+    
+
+    df_t_tr_.columns = column_name
+    df_f_tr_.columns = column_name
+    df_t_ho.columns = column_name
+    df_f_ho.columns = column_name
+    
+    
+    feat_path = "./ef_gen_tr/"
+    try:
+        os.mkdir(feat_path)
+    except:
+        print("")
+
+    df_t_tr_.to_pickle(feat_path + 'df_t'+"_"+str(name))
+    df_f_tr_.to_pickle(feat_path + 'df_f'+"_"+str(name))
+
+    feat_path = "./ef_gen_ho/"
+    try:
+        os.mkdir(feat_path)
+    except:
+        print("")
+
+    df_t_ho.to_pickle(feat_path + 'df_t'+"_"+str(name))
+    df_f_ho.to_pickle(feat_path + 'df_f'+"_"+str(name))
+    
+    # arrange true edges and non-edges features in a single df with true classification
+    df_tr = creat_full_set_temporal(df_t_tr_, df_f_tr_, predict_num+2)
+    df_ho = creat_full_set_temporal(df_t_ho, df_f_ho, predict_num+2)
+
+    dir_output = "./feature_metrices" + "/"
+    if not os.path.isdir(dir_output):
+        os.mkdir(dir_output)
+    
+    #### creat and save feature matrices #### 
+    dir_output = './feature_metrices'+"/"+str(name) +"/" # output path
+    if not os.path.isdir(dir_output):
+        os.mkdir(dir_output)
+
+    # here we only +1 , because we are ignoring the last layer of information. which is just the original matrix.
+    # the plus one is plusing towards the length of the feature vectors. 
+    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, len(bi_groups) > 0)
 
     path_to_data = './feature_metrices' +"/"+str(name)
     path_to_results = './results'+"/"+str(name)
