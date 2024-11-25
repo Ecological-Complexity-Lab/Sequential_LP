@@ -23,6 +23,13 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     """
     mln_data = np.loadtxt(mln_file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
 
+    groups = []
+    if not is_unipartite:
+        # get unique group ids
+        bi_group_1 = np.unique(mln_data[:,1])
+        bi_group_2 = np.unique(mln_data[:,2])
+        groups = [bi_group_1, bi_group_2]
+
     # get number of layers:
     n_layers = int(mln_data.max(axis=0)[0])
 
@@ -46,7 +53,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, mcc, precision, recall, featim, feats, cm = tolp.topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, is_unipartite)
+    auprc, auc, mcc, precision, recall, featim, feats, cm = tolp.topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, name, groups)
     print("feat_imp: ", featim)
 
     # read feature file and predictions and merge column into a single dataframe
@@ -123,8 +130,8 @@ if __name__ == "__main__":
     target_layer = mln_data[mln_data[:,0]==n_layers]
 
     num_nodes = int(np.max(mln_data)) +1
-    row = np.array(target_layer)[:,0]
-    col = np.array(target_layer)[:,1]
+    row = np.array(target_layer)[:,1]
+    col = np.array(target_layer)[:,2]
     data_aux = np.ones(len(row))
 
     import scipy.sparse as sparse
@@ -139,3 +146,5 @@ if __name__ == "__main__":
     edge_s= np.loadtxt("./edge_tf_true/edge_t"+"_"+str("WinfreeYYc_mln")+".txt").astype('int')
 
     df_t_ho, time2 = tolp.gen_topol_feats_bipartite(A, edge_s)
+
+    print("DONE")
