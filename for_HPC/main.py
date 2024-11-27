@@ -23,12 +23,15 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     """
     mln_data = np.loadtxt(mln_file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
 
+    pipeline_func = tolp.topol_stacking_temporal_partial
+
     groups = []
     if not is_unipartite:
         # get unique group ids
         bi_group_1 = np.unique(mln_data[:,1])
         bi_group_2 = np.unique(mln_data[:,2])
         groups = [bi_group_1, bi_group_2]
+        pipeline_func = tolp.topol_stacking_temporal_partial_bi
 
     # get number of layers:
     n_layers = int(mln_data.max(axis=0)[0])
@@ -53,7 +56,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
 
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
-    auprc, auc, mcc, precision, recall, featim, feats, cm = tolp.topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, name, groups)
+    auprc, auc, mcc, precision, recall, featim, feats, cm = pipeline_func(edges_orig, target_layer, predict_num, name, groups)
     print("feat_imp: ", featim)
 
     # read feature file and predictions and merge column into a single dataframe
@@ -119,7 +122,16 @@ if __name__ == "__main__":
     print("Running as main.")
     main_func()
 
+    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
+    q = 3
+    u = 6
+    target = 7
+    is_unipartite = 0
+    #run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
 
+
+    import scipy.sparse as sparse
+    from scipy.sparse import csr_matrix
 
     # temp:
     # make A
@@ -129,22 +141,25 @@ if __name__ == "__main__":
     n_layers = int(mln_data.max(axis=0)[0])
     target_layer = mln_data[mln_data[:,0]==n_layers]
 
-    num_nodes = int(np.max(mln_data)) +1
+    bi_group_1 = np.unique(mln_data[:,1])
+    bi_group_2 = np.unique(mln_data[:,2])
+
+     # to know the shift used to convert from matrix index to node index
+    nrows = col_ind_shift = len(bi_group_1)
+    ncols = len(bi_group_2)
+
+    #### convert target layer A to matrix
     row = np.array(target_layer)[:,1]
-    col = np.array(target_layer)[:,2]
+    col = np.array(target_layer)[:,2] - col_ind_shift
     data_aux = np.ones(len(row))
 
-    import scipy.sparse as sparse
-    from scipy.sparse import csr_matrix
-
-    A = csr_matrix((data_aux,(row,col)),shape=(num_nodes,num_nodes))
-    A = sparse.triu(A,1) + sparse.triu(A,1).transpose()
-    A[A>0] = 1 
+    A = csr_matrix((data_aux,(row,col)),shape=(nrows,ncols))
+    A[A>0] = 1 # in case some edges appear more than once
     A = A.todense()
 
     # generate features for the final stack (holdout data)
     edge_s= np.loadtxt("./edge_tf_true/edge_t"+"_"+str("WinfreeYYc_mln")+".txt").astype('int')
 
-    df_t_ho, time2 = tolp.gen_topol_feats_bipartite(A, edge_s)
+    df_t_ho, time2 = tolp.gen_topol_feats_bipartite(A, edge_s, [bi_group_1, bi_group_2])
 
     print("DONE")

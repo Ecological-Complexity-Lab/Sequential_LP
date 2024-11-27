@@ -84,7 +84,40 @@ def gen_tr_ho_networks(A_orig, alpha, alpha_):
     A_tr = A_tr + A_tr.T
     return A_ho, A_tr
 
-def adj_to_nodes_edges(A):
+def gen_tr_ho_networks_bi(A_orig, alpha, alpha_):
+
+    """ 
+    This function constructs the holdout and training adjacency matrix uniformly sampled from the original adjacency matrix.
+
+    Input and Parameters:
+    -------
+    A_orig: the original adjacency matrix
+    alpha : the sample probability used for sampling from the original matrix to create the holdout matrix
+    alpha_ : the sample probability used for sampling from the holdout matrix to create the training matrix
+
+    Returns:
+    -------
+    A_ho : the holdout adjacency matrix - removing <alpha> links from A_orig
+    A_tr : training adjacency matrix - removing <alpha_> links from A_ho
+
+
+    Examples:
+    -------
+    >>> A_ho, A_tr = gen_tr_ho_networks(A_orig, alpha, alpha_)
+    """
+    A_ho = A_orig.copy()
+    rows_one, cols_one = np.where(A_ho)
+    ones_prob_samp = np.random.binomial(1, size=len(rows_one), p=alpha)
+    A_ho[rows_one, cols_one] = ones_prob_samp
+
+    A_tr = A_ho.copy()
+    rows_one, cols_one = np.where(A_tr)
+    ones_prob_samp = np.random.binomial(1, size=len(rows_one), p=alpha_)
+    A_tr[rows_one, cols_one] = ones_prob_samp
+    return A_ho, A_tr
+
+
+def adj_to_nodes_edges(A, is_unipartite = True):
     
     """ 
     This function change adjacency matrix to list of nodes and edges.
@@ -102,14 +135,21 @@ def adj_to_nodes_edges(A):
     -------
     >>> nodes, edges = adj_to_nodes_edges(A)
     """
-    
-    num_nodes = A.shape[0]
-    nodes = range(num_nodes)
-    edges = np.where(np.triu(A,1))
-    row = edges[0]
-    col = edges[1]
-    edges = np.vstack((row,col)).T
-    return nodes, edges
+    if is_unipartite:
+        num_nodes = A.shape[0]
+        nodes = range(num_nodes)
+        edges = np.where(np.triu(A,1))
+        row = edges[0]
+        col = edges[1]
+        edges = np.vstack((row,col)).T
+        return nodes, edges
+    else: ## the natrix is bipartite
+        nrows, ncols = A.shape
+        nodes = range(nrows + ncols)
+        row, col = np.where(A)
+        col = col + nrows
+        edges = np.vstack((row,col)).T
+        return nodes, edges
 
 def gen_topol_feats(A_orig, A, edge_s): 
     
@@ -981,8 +1021,8 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
     """
     
     time_cost = {}
-    _, edges = adj_to_nodes_edges(A)   # TODO might need to do a different one for bipartite 
-    nodes = [int(iii) for iii in range(A.shape[0])]
+    nodes, edges = adj_to_nodes_edges(A, False) 
+    nodes = [int(iii) for iii in nodes]
     N = len(nodes)
     if len(edges.shape)==1:
         edges = [(int(iii),int(jjj)) for iii,jjj in [edges]]
@@ -1203,7 +1243,7 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
     svd_edges_dot = []
     # average of entries i and j’s neighbors in low rank approximation
     neigh_ = {}
-    for nn in range(len(nodes)):
+    for nn in range(len(nodes)): # TODO fix this - works with A so indexes are shifter
         neigh_[nn] = np.where(A[nn,:])[0]
     svd_edges_mean = []
     for ee in range(len(edge_s)):
@@ -1775,7 +1815,17 @@ def sample_true_false_edges_temporal(A_orig, A_train, predict_num, name):
     np.savetxt("./edge_tf_true/edge_t"+"_"+str(name)+".txt",edge_tt,fmt='%u')
     np.savetxt("./edge_tf_true/edge_f"+"_"+str(name)+".txt",edge_ff,fmt='%u')
 
-def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):  
+def edgs_by_net_type(A, is_unipartite):
+    if is_unipartite:
+        edges = sparse.find(sparse.triu(A,1))
+    else: # bipartite
+        nrows, _ = A.shape
+        edges = sparse.find(A)
+        sec_col = edges[1] + nrows # shift the indices of the second group of nodes
+        edges = (edges[0], sec_col, edges[2])
+    return edges
+
+def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name, is_unipartite=True):  
     
     """ 
     A : matrix representing the target layer to be predicted
@@ -1794,10 +1844,9 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
     # prepare for the stackes of layers
     for i in range(predict_num, len(A_tr)):
         A_diff = A_tr[i] - A_ho[i-predict_num]
-        nodes, edges = adj_to_nodes_edges(A_diff)
-        pos_edges = sparse.find(sparse.triu(A_tr[i],1)) # true candidates
+        pos_edges = edgs_by_net_type(A_tr[i], is_unipartite) # true candidates
         A_neg = -1*A_tr[i] + 1
-        neg_edges = sparse.find(sparse.triu(A_neg,1)) # false candidates
+        neg_edges = edgs_by_net_type(A_neg, is_unipartite) # false candidates
 
         temp_edge_t = [] # list of true edges (positive samples)
         temp_edge_f = [] # list of false edges (negative samples)
@@ -1816,9 +1865,10 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
 
     # sample final layer 
     A_diff = A_ho[-1] - A_tr_new[-1]
-    e_diff = sparse.find(sparse.triu(A_diff,1)) # true candidates
+    e_diff = edgs_by_net_type(A_diff, is_unipartite) # true candidates
+
     A_ho_aux = -1*A_ho[-1] + 1
-    ne_ho = sparse.find(sparse.triu(A_ho_aux,1)) # false candidates
+    ne_ho = edgs_by_net_type(A_ho_aux, is_unipartite) # false candidates
     Nsamples = 10000 # number of samples
     edge_t = [] # list of true edges (positive samples)
     edge_f = [] # list of false edges (negative samples)
@@ -1838,9 +1888,11 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name):
     
     # sample just from the last layer
     A_diff = A - A_ho[-1]
-    e_diff = sparse.find(sparse.triu(A_diff,1)) # true candidates
+    e_diff = edgs_by_net_type(A_diff, is_unipartite) # true candidates
+
     A_orig_aux = -1*A + 1
-    ne_orig = sparse.find(sparse.triu(A_orig_aux,1)) # false candidates
+    ne_orig = edgs_by_net_type(A_orig_aux, is_unipartite) # false candidates
+
     Nsamples = 10000 # number of samples
     edge_tt = [] # list of true edges (positive samples)
     edge_ff = [] # list of false edges (negative samples)
@@ -2142,7 +2194,7 @@ def topol_stacking_temporal_with_adjmatrix(adj_orig, target_layer, predict_num,n
 
     return auprc, auc, precision, recall, featim, feats, cm
 
-def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, bi_groups=[]): 
+def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name, _): 
     
     """ 
     Assuming we have some information about the target layer
@@ -2397,18 +2449,18 @@ def topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, na
     A_tr_new = []
     
     for i in range(predict_num, len(A_tr)):
-        A_hold, A_train = gen_tr_ho_networks(A_tr[i], alpha, alpha_) # TODO make sure this works with bi-partite
+        A_hold, A_train = gen_tr_ho_networks_bi(A_tr[i], alpha, alpha_)
         A_ho.append(A_hold)
         A_tr_new.append(A_train)
         
     ### here we are still missing the last training and testing label, we need to add the target layer
-    A_hold_, A_train_ = gen_tr_ho_networks(A, alpha, alpha_)    # TODO make sure this works with bi-partite
+    A_hold_, A_train_ = gen_tr_ho_networks_bi(A, alpha, alpha_)
     A_tr_new.append(A_train_)
     ### A_ho is the test sets, the label is. The last element of A_ho is the true label where we try to predict. 
     A_ho.append(A_hold_)
     
     ### Now the training and hold out matrix list is complete, we try to create the corresponding edge lists for each.
-    sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num, name)  # TODO make sure this works with bi-partite
+    sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num, name, False)
     
     # run over the stacks and generate features (this is a long step)
     for i in range(predict_num, len(A_tr)):
