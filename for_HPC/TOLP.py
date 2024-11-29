@@ -40,8 +40,8 @@ uni_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
 bi_feature_set = {'ave_deg_net', 'var_deg_net', 'ave_clust_net','pag_rank1', 'pag_rank2', 
          'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2',
          'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1', 'betw_cent2',
-         'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2', 'svd_edges','svd_edges_dot',
-         'svd_edges_mean', 'svd_edges_approx', 'svd_edges_dot_approx','svd_edges_mean_approx', 
+         'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2', 'svd_edges',
+         'svd_edges_mean', 'svd_edges_approx', 'svd_edges_mean_approx', 
          'short_path', 'deg_assort', 'num_nodes', 'num_edges', 'redun1_edges', 'redun2_edges',
          'ltpy_clust1_edges', 'ltpy_clust2_edges', 'hits_h1_edges', 'hits_h2_edges',  'hits_a1_edges', 
          'hits_a2_edges', 'isolates1_edges', 'isolates2_edges', 'pref_attach', 'brdg_edges', 'frnds_edges'}
@@ -1239,16 +1239,17 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
     f_mean = lambda x: np.mean(x) if len(x)>0 else 0
     # entry i, j in low rank approximation (LRA) via singular value decomposition (SVD)
     svd_edges = []
-    # dot product of columns i and j in LRA via SVD for each pair of nodes i, j
-    svd_edges_dot = []
     # average of entries i and j’s neighbors in low rank approximation
     neigh_ = {}
     for nn in range(len(nodes)): # TODO fix this - works with A so indexes are shifter
-        neigh_[nn] = np.where(A[nn,:])[0]
+        if nn in group1_nodes:
+            neigh_[nn] = np.where(A[nn,:])[0]
+        else:
+            neigh_[nn] = np.where(A[:,nn - len(group1_nodes)])[0]
     svd_edges_mean = []
     for ee in range(len(edge_s)):
-        svd_edges.append(Atilda[edge_s[ee][0],edge_s[ee][1]])
-        svd_edges_dot.append(np.inner(Atilda[edge_s[ee][0],:],Atilda[:,edge_s[ee][1]]))
+        unshifted = edge_s[ee][1] - len(group1_nodes)
+        svd_edges.append(Atilda[edge_s[ee][0],unshifted])
         svd_edges_mean.append(f_mean(Atilda[edge_s[ee][0],neigh_[edge_s[ee][1]]]))        
  
     time_cost["SVD"] = (time.time() - start_time)
@@ -1264,22 +1265,22 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
     f_mean = lambda x: np.mean(x) if len(x)>0 else 0
     # an approximation of LRA (LRA-approx)
     svd_edges_approx = []
-    # an approximation of dLRA (dLRA-approx)
-    svd_edges_dot_approx = []
     # an approximation of mLRA (mLRA-approx)
     svd_edges_mean_approx = []
     for ee in range(len(edge_s)):
-        svd_edges_approx.append(Atilda[edge_s[ee][0],edge_s[ee][1]])
-        svd_edges_dot_approx.append(np.inner(Atilda[edge_s[ee][0],:],Atilda[:,edge_s[ee][1]]))
+        unshifted = edge_s[ee][1] - len(group1_nodes)
+        svd_edges_approx.append(Atilda[edge_s[ee][0],unshifted])
         svd_edges_mean_approx.append(f_mean(Atilda[edge_s[ee][0],neigh_[edge_s[ee][1]]])) 
     
     time_cost["dLRA"] = (time.time() - start_time)
     start_time = time.time()
 
+    # Note: under SVD, ignoring dot product as - impossible to calculate due to different sizes of vectors
+
     # number of nodes (N)
-    num_nodes = A.shape[0]
+    num_nodes = len(nodes)
     # number of observed edges (OE)
-    num_edges = int(np.sum(A)/2)
+    num_edges = int(np.sum(A))
     
 
     # bipartite specific features:
@@ -1343,7 +1344,11 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
 
     pref_attach = []
     for ee in range(len(edge_s)):
-        pref_attach.append(dict_pa[(edge_s[ee][0],edge_s[ee][1])])
+        # if tair is not in this dictionary
+        if (edge_s[ee][0],edge_s[ee][1]) not in dict_pa:
+            pref_attach.append(0)
+        else:
+            pref_attach.append(dict_pa[(edge_s[ee][0],edge_s[ee][1])])
 
     # bridges
     bridges = bridges_helper(G, group1_nodes, non_edges)
@@ -1375,8 +1380,8 @@ def gen_topol_feats_bipartite(A, edge_s, bi_groups):
          'clos_cent2':closn_cent2_edges, 'betw_cent1':betw_cent1_edges, 'betw_cent2':betw_cent2_edges, \
          'load_cent1':load_cent1_edges, 'load_cent2':load_cent2_edges, 'ktz_cent1':ktz_cent1_edges, 
          'ktz_cent2':ktz_cent2_edges, 'svd_edges':svd_edges,
-         'svd_edges_dot':svd_edges_dot,'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
-         'svd_edges_dot_approx':svd_edges_dot_approx,'svd_edges_mean_approx':svd_edges_mean_approx, 
+         'svd_edges_mean':svd_edges_mean, 'svd_edges_approx':svd_edges_approx,
+         'svd_edges_mean_approx':svd_edges_mean_approx, 
          'short_path':short_path_edges, 'deg_assort':deg_ass_net, \
          'num_nodes':num_nodes, 'num_edges':num_edges, 'redun1_edges':redun1_edges, 'redun2_edges':redun2_edges,
          'ltpy_clust1_edges':ltpy_clust1_edges, 'ltpy_clust2_edges':ltpy_clust2_edges, 'hits_h1_edges':hits_h1_edges, 
@@ -1504,7 +1509,7 @@ def gen_topol_feats_temporal(A_orig, A_tr, edge_s, bi_groups=[]):
     
     return df_feat, time_count
 
-def creat_full_set_temporal(df_t,df_f,predict):
+def creat_full_set_temporal(df_t,df_f,predict, is_unipartite=True):
     
     """ 
     This reads dataframes created for positive and negative class, join them with their associated label.
@@ -1533,12 +1538,14 @@ def creat_full_set_temporal(df_t,df_f,predict):
     df_all = pd.concat(df_all)
     
     df_all.loc[df_all['short_path'] == np.inf,'short_path'] = 1000*max(df_all.loc[~(df_all['short_path'] == np.inf),'short_path'],default=0)
-    df_all.loc[df_all['diam_net'] == np.inf,'diam_net'] = 1e6
+    if is_unipartite:
+        df_all.loc[df_all['diam_net'] == np.inf,'diam_net'] = 1e6
     
     # data cleaning
     for i in range(1,predict):
         df_all.loc[df_all['short_path_{}'.format(i)] == np.inf,'short_path_{}'.format(i)] = 1000*max(df_all.loc[~(df_all['short_path'] == np.inf),'short_path'],default=0)
-        df_all.loc[df_all['diam_net_{}'.format(i)] == np.inf,'diam_net_{}'.format(i)] = 1e6
+        if is_unipartite:
+            df_all.loc[df_all['diam_net_{}'.format(i)] == np.inf,'diam_net_{}'.format(i)] = 1e6
      
     return df_all
 
@@ -1874,7 +1881,7 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name, i
     edge_f = [] # list of false edges (negative samples)
     
     for ll in range(Nsamples):
-        edge_t_idx_aux = np.random.randint(len(e_diff[0]))
+        edge_t_idx_aux = np.random.randint(len(e_diff[0])) # why did len(e_diff[0]) turn as 0? TODO
         edge_f_idx_aux = np.random.randint(len(ne_ho[0]))
         edge_t.append((e_diff[0][edge_t_idx_aux],e_diff[1][edge_t_idx_aux]))
         edge_f.append((ne_ho[0][edge_f_idx_aux],ne_ho[1][edge_f_idx_aux]))
@@ -2554,8 +2561,8 @@ def topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, na
     df_f_ho.to_pickle(feat_path + 'df_f'+"_"+str(name))
     
     # arrange true edges and non-edges features in a single df with true classification
-    df_tr = creat_full_set_temporal(df_t_tr_, df_f_tr_, predict_num+2)
-    df_ho = creat_full_set_temporal(df_t_ho, df_f_ho, predict_num+2)
+    df_tr = creat_full_set_temporal(df_t_tr_, df_f_tr_, predict_num+2, False)
+    df_ho = creat_full_set_temporal(df_t_ho, df_f_ho, predict_num+2, False)
 
     dir_output = "./feature_metrices" + "/"
     if not os.path.isdir(dir_output):
