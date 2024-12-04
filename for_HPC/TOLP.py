@@ -37,14 +37,14 @@ uni_feature_set = ['com_ne', 'ave_deg_net', 'var_deg_net', 'ave_clust_net',
            'svd_edges_approx', 'svd_edges_dot_approx', 'svd_edges_mean_approx',
            'short_path', 'deg_assort', 'transit_net', 'diam_net',
            'jacc_coeff', 'res_alloc_ind', 'adam_adar' , 'num_nodes','num_edges']
-bi_feature_set = {'ave_deg_net', 'var_deg_net', 'ave_clust_net','pag_rank1', 'pag_rank2', 
+bi_feature_set = ['ave_deg_net', 'var_deg_net', 'ave_clust_net','pag_rank1', 'pag_rank2', 
          'clust_coeff1', 'clust_coeff2', 'ave_neigh_deg1', 'ave_neigh_deg2',
          'deg_cent1', 'deg_cent2', 'clos_cent1', 'clos_cent2', 'betw_cent1', 'betw_cent2',
          'load_cent1', 'load_cent2', 'ktz_cent1', 'ktz_cent2', 'svd_edges',
          'svd_edges_mean', 'svd_edges_approx', 'svd_edges_mean_approx', 
          'short_path', 'deg_assort', 'num_nodes', 'num_edges', 'redun1_edges', 'redun2_edges',
          'ltpy_clust1_edges', 'ltpy_clust2_edges', 'hits_h1_edges', 'hits_h2_edges',  'hits_a1_edges', 
-         'hits_a2_edges', 'isolates1_edges', 'isolates2_edges', 'pref_attach', 'brdg_edges', 'frnds_edges'}
+         'hits_a2_edges', 'isolates1_edges', 'isolates2_edges', 'pref_attach', 'brdg_edges', 'frnds_edges']
 
 
 ###### Auxilary function ########
@@ -2575,7 +2575,7 @@ def topol_stacking_temporal_partial_bi(edges_orig, target_layer, predict_num, na
 
     # here we only +1 , because we are ignoring the last layer of information. which is just the original matrix.
     # the plus one is plusing towards the length of the feature vectors. 
-    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, len(bi_groups) > 0)
+    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, len(bi_groups) == 0)
 
     path_to_data = './feature_metrices' +"/"+str(name)
     path_to_results = './results'+"/"+str(name)
