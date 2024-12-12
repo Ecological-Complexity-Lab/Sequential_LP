@@ -1881,7 +1881,7 @@ def sample_true_false_edges_partial(A, A_ho, A_tr, A_tr_new, predict_num,name, i
     edge_f = [] # list of false edges (negative samples)
     
     for ll in range(Nsamples):
-        edge_t_idx_aux = np.random.randint(len(e_diff[0])) # why did len(e_diff[0]) turn as 0? TODO
+        edge_t_idx_aux = np.random.randint(len(e_diff[0]))
         edge_f_idx_aux = np.random.randint(len(ne_ho[0]))
         edge_t.append((e_diff[0][edge_t_idx_aux],e_diff[1][edge_t_idx_aux]))
         edge_f.append((ne_ho[0][edge_f_idx_aux],ne_ho[1][edge_f_idx_aux]))
@@ -2378,7 +2378,7 @@ def topol_stacking_temporal_partial(edges_orig, target_layer, predict_num, name,
 
     # here we only +1 , because we are ignoring the last layer of information. which is just the original matrix.
     # the plus one is plusing towards the length of the feature vectors. 
-    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1, is_unipartite)
+    creat_numpy_files_temporal(dir_output, df_ho, df_tr,predict_num+1)
 
     path_to_data = './feature_metrices' +"/"+str(name)
     path_to_results = './results'+"/"+str(name)

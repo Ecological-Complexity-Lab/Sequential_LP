@@ -96,7 +96,7 @@ def main_func():
 
     # read user input params
     n_args = len(sys.argv)
-    print(n_args)
+    print("n_args: ", n_args)
     if n_args == 1:
         raise Exception("Must have at least one argument - with file path to the mln file")
     elif n_args == 2:
@@ -121,45 +121,5 @@ def main_func():
 if __name__ == "__main__":
     print("Running as main.")
     main_func()
-
-    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
-    q = 3
-    u = 6
-    target = 7
-    is_unipartite = 0
-    #run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
-
-
-    import scipy.sparse as sparse
-    from scipy.sparse import csr_matrix
-
-    # temp:
-    # make A
-    file_path = "for_HPC/input/WinfreeYYc_mln.csv"
-    
-    mln_data = np.loadtxt(file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
-    n_layers = int(mln_data.max(axis=0)[0])
-    target_layer = mln_data[mln_data[:,0]==n_layers]
-
-    bi_group_1 = np.unique(mln_data[:,1])
-    bi_group_2 = np.unique(mln_data[:,2])
-
-     # to know the shift used to convert from matrix index to node index
-    nrows = col_ind_shift = len(bi_group_1)
-    ncols = len(bi_group_2)
-
-    #### convert target layer A to matrix
-    row = np.array(target_layer)[:,1]
-    col = np.array(target_layer)[:,2] - col_ind_shift
-    data_aux = np.ones(len(row))
-
-    A = csr_matrix((data_aux,(row,col)),shape=(nrows,ncols))
-    A[A>0] = 1 # in case some edges appear more than once
-    A = A.todense()
-
-    # generate features for the final stack (holdout data)
-    edge_s= np.loadtxt("./edge_tf_true/edge_t"+"_"+str("WinfreeYYc_mln")+".txt").astype('int')
-
-    df_t_ho, time2 = tolp.gen_topol_feats_bipartite(A, edge_s, [bi_group_1, bi_group_2])
 
     print("DONE")
