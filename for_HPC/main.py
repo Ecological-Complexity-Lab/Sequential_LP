@@ -82,8 +82,8 @@ def main_func():
     # --- argument handling ------
     # expected arguments:
     # 1. filename - must
-    # 2. flow variable (q - n layers in a stack) - has default
-    # 3. search varianle (u - n layers used to predicte) - has default
+    # 2. flow variable (q = n layers in a stack) - has default
+    # 3. search varianle (u = n layers used to predicte) - has default
     # 4. predicted later index - has default
     # 5. is unipartite (1) or bipartite (0)- has default
 
