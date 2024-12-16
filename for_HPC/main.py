@@ -57,13 +57,13 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     name = os.path.splitext(os.path.basename(mln_file_path))[0]# file name
     # run the lp algorithm
     auprc, auc, mcc, precision, recall, featim, feats, cm = pipeline_func(edges_orig, target_layer, predict_num, name, groups)
-    print("feat_imp: ", featim)
+    #print("feat_imp: ", featim) # shows the importance level of each feature
 
     # read feature file and predictions and merge column into a single dataframe
     memb = np.loadtxt("results/" + name + "/probabilities.txt", delimiter=",", dtype=float)
-    pred = np.loadtxt("results/" + name + "/prediction.txt", delimiter=",", dtype=int)
-    feat = np.loadtxt("results/" + name + "/predicted_edges.txt", delimiter=",", dtype=int) # per edge get nodes ids and true clasification
-    
+    pred = np.loadtxt("results/" + name + "/prediction.txt", delimiter=",").astype(np.int64)
+    feat = np.loadtxt("results/" + name + "/predicted_edges.txt", delimiter=",").astype(np.int64) # per edge get nodes ids and true clasification
+
     # convert numpy arrays to pandas dataframes
     memb = pd.DataFrame(memb, columns=['memb_0', 'memb_1'])
     pred = pd.DataFrame(pred, columns=['prediction'])
@@ -100,7 +100,7 @@ def main_func():
     if n_args == 1:
         raise Exception("Must have at least one argument - with file path to the mln file")
     elif n_args == 2:
-        print("Using default parameters: q=3, u=6, target_layer=7")
+        print("Using default parameters: q=3, u=6, target_layer=7, is_unipartite = 0")
     elif n_args == 6:
         print("Script arguments are:", sys.argv[1:])
         q = int(sys.argv[2])
@@ -114,7 +114,7 @@ def main_func():
     assert os.path.isfile(file_path), "First argument must point to a mln file."
 
     # --- Run -------
-    run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+    r = run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
     print("Single lp run finished. ")
 
 # --- Run -------

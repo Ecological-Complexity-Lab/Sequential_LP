@@ -22,7 +22,7 @@ Usage includes:
 
 ## Input
 running the tool (via HPC) should be as follews: \ 
-Go to the terminal and log into the HPC then into the relevant node (using ssh). \
+Go to the terminal and log into the HPC then into the relevant node (bhn1089, using ssh). \
 use `cd` to navigate to the folder of the tool \
 `cd ../../project/software/Sequential_LP`
 
@@ -45,9 +45,9 @@ so it is not recommended to use them unless they are identical
 to the structure of the network you are analysing as well.
 
 so to run the example:\
-`python3 main.py example/WinfreeYYc_mln.csv` \
+`python3 main.py input/WinfreeYYc_mln.csv` \
 or \
-`python3 main.py example/WinfreeYYc_mln.csv 3 6 7 0` 
+`python3 main.py input/WinfreeYYc_mln.csv 3 6 7 0` 
 
 Note: \
 when runing the script you should pass to it either exactly one argument or 
