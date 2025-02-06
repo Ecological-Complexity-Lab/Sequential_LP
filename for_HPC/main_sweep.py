@@ -34,7 +34,7 @@ def main_func():
     # expected arguments:
     # 1. filename - must
     # 2. number of layers - has default
-    # 3. is unipartite (1) or bipartite (2)- has default
+    # 3. is unipartite (1) or bipartite (0)- has default
 
     # set defaults
     file_path = "for_HPC/input/WinfreeYYc_mln.csv"
