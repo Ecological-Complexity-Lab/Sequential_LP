@@ -1586,7 +1586,6 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict, is_unipartite
         for i in range (len_of_feat*j, len_of_feat*(j+1)):
             full_feat_set[i] = feature_set[i-len_of_feat*j]+"_"+str(j)
         
-    
     X_test_heldout = df_ho
     y_test_heldout = np.array(df_ho.TP)
     
@@ -1655,6 +1654,9 @@ def creat_numpy_files_temporal(dir_results, df_ho, df_tr, predict, is_unipartite
     np.save(dir_results+'/X_Eunseen', X_unseen)
     np.save(dir_results+'/y_Eunseen', y_unseen) 
     print( "created holdout set ...")
+
+    # save the feature names to later be used in feature importance
+    np.save(dir_results+'/feature_names', full_feat_set)
 
 
 def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est):
@@ -1731,6 +1733,11 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     f.write('feature_importance = '+ str(list(feature_importance))+'\n')
     f.close()
     
+    # build feature importance table with feature names, and save it
+    feature_names = np.load(path_to_data+'/feature_names.npy')
+    feats_to_save = pd.DataFrame(feature_importance, index=feature_names, columns=['importance'])
+    feats_to_save.to_csv(path_to_results + '/feature_importance.csv')
+
     print("AUC: " +str(np.round(auc_measure,2)))
     print("AUPRC: " +str(np.round(auprc,2)))
     print("precision: " +str(np.round(precision_total[0],2)))

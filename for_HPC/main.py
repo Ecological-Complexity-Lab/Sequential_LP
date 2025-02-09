@@ -59,9 +59,6 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     auprc, auc, mcc, precision, recall, featim, feats, cm = pipeline_func(edges_orig, target_layer, predict_num, name, groups)
     #print("feat_imp: ", featim) # shows the importance level of each feature
 
-    # save the feature importance to a file
-    np.savetxt("results/" + name + "/feature_importance.txt", featim, delimiter=",") # unit test
-
     # read feature file and predictions and merge column into a single dataframe
     memb = np.loadtxt("results/" + name + "/probabilities.txt", delimiter=",", dtype=float)
     pred = np.loadtxt("results/" + name + "/prediction.txt", delimiter=",").astype(np.int64)
