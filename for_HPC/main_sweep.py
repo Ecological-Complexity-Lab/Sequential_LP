@@ -3,6 +3,7 @@
 
 # --- include -----
 import pandas as pd
+import numpy as np
 import os
 import sys
 import main as mn
@@ -10,6 +11,7 @@ import main as mn
 # --- functions --------
 def run_q_u_sweep(filepath, n_layers, is_unipartite):
     name = os.path.splitext(os.path.basename(filepath))[0]# file name
+    folder = os.path.dirname(filepath)
     target = n_layers # we always target the last layer
     max_u = n_layers - 1
     min_q = 2
@@ -21,7 +23,12 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
     for q in range(min_q, max_q+1):
         for u in range(q+1, max_u+1):
             print("Running for q: ", q, " and u: ", u)
-            auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(filepath, q, u, target, is_unipartite > 0)
+            # make it so that we have a different network file for each q and u
+            mln_data = np.loadtxt(filepath, delimiter=",", skiprows=1)
+            new_file_name = folder+name+"_q"+str(q)+"_u"+str(u)+".csv"
+            np.savetxt(new_file_name, mln_data, delimiter=",", save_column_names=True)
+
+            auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(new_file_name, q, u, target, is_unipartite > 0)
             tn, fp, fn, tp = cm.ravel()
             result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
             nrows = nrows+1
