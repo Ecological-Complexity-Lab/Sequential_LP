@@ -1,10 +1,11 @@
 #! /bin/bash
 
 # these are variables to be used in the job queueing by the HPC:
-#$ -q shai.q@bhn27
+#$ -q shai.q@bhn1089
 #$ -cwd
 #$ -N single_sweep   
 #$ -l h_vmem=2G
+#$ -o ./logs/
 #$ -j y
 
 # running the python script
