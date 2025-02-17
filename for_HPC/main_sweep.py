@@ -26,7 +26,7 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
             # make it so that we have a different network file for each q and u
             mln_data = np.loadtxt(filepath, delimiter=",", skiprows=1)
             new_file_name = folder+name+"_q"+str(q)+"_u"+str(u)+".csv"
-            np.savetxt(new_file_name, mln_data, delimiter=",", save_column_names=True)
+            np.savetxt(new_file_name, mln_data, delimiter=",")
 
             auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(new_file_name, q, u, target, is_unipartite > 0)
             tn, fp, fn, tp = cm.ravel()
