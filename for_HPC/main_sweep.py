@@ -50,7 +50,6 @@ def main_func():
 
     # read user input params
     n_args = len(sys.argv)
-    print(n_args)
     if n_args == 1:
         raise Exception("Must have at least one argument - with file path to the mln file")
     elif n_args == 2:
@@ -76,5 +75,5 @@ def main_func():
 
 # --- Run -------
 if __name__ == "__main__":
-    print("Running as main.")
+    print("main_sweep.py running as main.")
     main_func()

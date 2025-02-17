@@ -119,7 +119,7 @@ def main_func():
 
 # --- Run -------
 if __name__ == "__main__":
-    print("Running as main.")
+    print("main.py running as main.")
     main_func()
 
     print("DONE")
