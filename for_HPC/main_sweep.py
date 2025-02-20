@@ -5,7 +5,7 @@
 import pandas as pd
 import numpy as np
 import os
-import sys
+import shutil
 import main as mn
 
 # --- functions --------
@@ -24,9 +24,8 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
         for u in range(q+1, max_u+1):
             print("Running for q: ", q, " and u: ", u)
             # make it so that we have a different network file for each q and u
-            mln_data = np.loadtxt(filepath, delimiter=",", skiprows=1)
             new_file_name = folder+"/"+name+"_q"+str(q)+"_u"+str(u)+".csv"
-            np.savetxt(new_file_name, mln_data, delimiter=",")
+            shutil.copyfile(filepath,new_file_name) 
 
             auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(new_file_name, q, u, target, is_unipartite > 0)
             tn, fp, fn, tp = cm.ravel()
@@ -80,3 +79,4 @@ def main_func():
 if __name__ == "__main__":
     print("main_sweep.py running as main.")
     main_func()
+    print("sweep is done.")

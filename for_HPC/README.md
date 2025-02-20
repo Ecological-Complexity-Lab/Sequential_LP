@@ -31,7 +31,7 @@ enter in the command line either: \
 `python3 main.py <path/to/mln/file.csv> <q> <u> <target_layer_index> <is_unipartite>` \
 
 when: \
-`<path/to/mln/file.csv>` - path to the input file, containing the multilayer network in edgelist format. \
+`<path/to/mln/file.csv>` - path to the input file, containing the multilayer network in edgelist format, with a column names. \
 `<q>` - flow variable from the original tool: number of layers in a stack.\
 `<u>` - search varianle from the original tool: number of layers overall used to predict the target.\
 `<target_layer_index>` - the index of the target layer (1 indexed).\
