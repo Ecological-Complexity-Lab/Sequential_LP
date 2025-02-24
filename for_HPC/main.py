@@ -21,7 +21,7 @@ def run_partially_observed_temporal_lp(mln_file_path, predict_num, search_var, l
     predict_num - the number of layers in one stack of layers used to calculate features. q in the paper.
     search_var - the number of temporal layers to look back from the predicted layer. u in the paper.
     """
-    mln_data = np.loadtxt(mln_file_path, delimiter=",", skiprows=1) # assumes the first row are column headers
+    mln_data = np.loadtxt(mln_file_path, delimiter=",", skiprows=1) # assumes the first row are always  column headers
 
     pipeline_func = tolp.topol_stacking_temporal_partial
 

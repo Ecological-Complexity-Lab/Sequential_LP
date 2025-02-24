@@ -604,7 +604,7 @@ def model_selection(path_to_data, path_to_results, n_depths, n_ests):
     i,j = np.unravel_index(fmeasure_matrix.argmax(), fmeasure_matrix.shape)
     n_depth = n_depths[i]
     ne_est = n_ests[j]
-    print("best parameters for random forest are: n_depth: "+str(n_depth)+", and n_estimators: "+str(ne_est))
+    print("best parameters for random forest are: n_depth: "+str(n_depth)+", and n_estimators: "+str(ne_est), flush=True)
     return n_depth, ne_est
 
 def gen_topol_feats_timed(A, edge_s, _): 
@@ -1716,11 +1716,12 @@ def heldout_performance_bestchoice(path_to_data, path_to_results, n_depth, n_est
     auc_measure = roc_auc_score(y_test, dtree_proba[:,1])
     auprc = average_precision_score(y_test, dtree_proba[:,1])
     mcc = matthews_corrcoef(y_test, dtree_predictions)
-     
-    precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None)
+    
+    # when the layers are too small, and the prediction/label for all the predicted edges is always 0/1 then there is an error
+    precision_total, recall_total, f_measure_total, _ = precision_recall_fscore_support(y_test, dtree_predictions, average=None) 
 
     # Save results in files
-    print("saving prediction and probabilities in: " + path_to_results)
+    print("saving prediction and probabilities in: " + path_to_results, flush=True)
     np.savetxt(path_to_results + '/prediction.txt', dtree_predictions, delimiter=',')
     np.savetxt(path_to_results + '/probabilities.txt', dtree_proba, delimiter=',')
     

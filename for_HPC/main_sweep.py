@@ -1,5 +1,6 @@
 # Description: This script is used to run a sweep of the parameters q and u for the temporal link prediction algorithm.
 # assumption: the last layer is the target layer
+print("main_sweep.py start.")
 
 # --- include -----
 import pandas as pd
