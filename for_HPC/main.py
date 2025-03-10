@@ -114,7 +114,21 @@ def main_func():
     assert os.path.isfile(file_path), "First argument must point to a mln file."
 
     # --- Run -------
-    r = run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+    auprc, auc, mcc, precision, recall, _, _2, cm  = run_partially_observed_temporal_lp(file_path, q, u, target, is_unipartite > 0)
+
+    # save the result to a file - as this was called as main function, no-one else will do it
+    tn, fp, fn, tp = cm.ravel()
+    result_df = pd.DataFrame(columns=["study", "q", "u", "roc", "prc", "mcc", "precision", "recall", "tn", "fp", "fn", "tp"])
+    name = os.path.splitext(os.path.basename(file_path))[0]# file name
+    result_df.loc[0] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
+    
+    # save a file 
+    if not os.path.exists("results/one_liners_files/"):
+        os.mkdir("results/one_liners_files/")
+    name = name+"_q"+str(q)+"_u"+str(u)+"_target"+str(target)
+    ouptut_file = "results/one_liners_files/"+ name +"_res_single_line.csv"
+    result_df.to_csv(ouptut_file, index=False)
+
     print("Single lp run finished. ")
 
 # --- Run -------

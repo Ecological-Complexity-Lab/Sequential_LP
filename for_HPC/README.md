@@ -84,14 +84,16 @@ It details an edge's true classification, membership probabilities and clasifica
 
 
 ## Secondary usage:
-In the same folder exists a wrapper for the tool that runs a sweep across all possible q and u values, 
-and saves performance measurements. 
+In the same folder exists a wrapper for the tool that runs a sweep across all possible q and u values, and saves performance measurements. 
 
 ### Input
 running process is similar to the one above, only the command will be: \
-`python3 main_sweep.py example/WinfreeYYc_mln.csv <number_of_layers> <is_unipartite>` \
+`python3 main_sweep.py <path/to/mln/file.csv> <number_of_layers> <is_unipartite> <is_in_hpc>` \
 or \
-`python3 main_sweep.py example/WinfreeYYc_mln.csv 7 0` 
+`python3 main_sweep.py example/WinfreeYYc_mln.csv 7 0 1` 
+
+where:
+`<is_in_hpc>` - indicates whather this run is conducted on the HPC, and runs eash run in the sweep in a seperate job, instead if synchronicly in the same process (in perellal instead of one after the other)
 
 ### input file format
 the same as the one for a single lp run: `layer | node_from | node_to`
@@ -100,6 +102,8 @@ the same as the one for a single lp run: `layer | node_from | node_to`
 the same as a single run, with the addision of a new file: \
 `results/<input_file_name>_sweep.csv` \
 in it the performance measurments for each pair of possible q and u.
+or if this is run on HPC, then each lp run is in a seperate job, then each summery line will be in a seperate file under:
+`results/one_liners_files/`
 
 # Source
 Example data paper: https://nsojournals.onlinelibrary.wiley.com/doi/full/10.1111/oik.07303 \

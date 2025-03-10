@@ -11,7 +11,7 @@ import shutil
 import main as mn
 
 # --- functions --------
-def run_q_u_sweep(filepath, n_layers, is_unipartite):
+def run_q_u_sweep(filepath, n_layers, is_unipartite, is_in_hpc):
     name = os.path.splitext(os.path.basename(filepath))[0]# file name
     folder = os.path.dirname(filepath)
     target = n_layers # we always target the last layer
@@ -29,10 +29,17 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite):
             new_file_name = folder+"/"+name+"_q"+str(q)+"_u"+str(u)+".csv"
             shutil.copyfile(filepath,new_file_name) 
 
-            auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(new_file_name, q, u, target, is_unipartite > 0)
-            tn, fp, fn, tp = cm.ravel()
-            result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
-            nrows = nrows+1
+            if is_in_hpc == 1:
+                comd = "qsub run_single.sh "+new_file_name+" "+str(q)+" "+str(u)+" "+str(target)+" "+str(is_unipartite)
+                print("Running os command: ", comd)
+
+                # run a system command to run as a job
+                os.system(comd)
+            else:
+                auprc, auc, mcc, precision, recall, _, _2, cm = mn.run_partially_observed_temporal_lp(new_file_name, q, u, target, is_unipartite > 0)
+                tn, fp, fn, tp = cm.ravel()
+                result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
+                nrows = nrows+1
 
             # delete the file
             os.remove(new_file_name)
@@ -51,6 +58,7 @@ def main_func():
     file_path = "for_HPC/input/WinfreeYYc_mln.csv"
     n_layers = 7
     is_unipartite = 1
+    is_in_hpc = 1
 
     # read user input params
     n_args = len(sys.argv)
@@ -62,6 +70,11 @@ def main_func():
         print("Script arguments are:", sys.argv[1:])
         n_layers = int(sys.argv[2])
         is_unipartite = int(sys.argv[3])
+    elif n_args == 5:
+        print("Script arguments are:", sys.argv[1:])
+        n_layers = int(sys.argv[2])
+        is_unipartite = int(sys.argv[3])
+        is_in_hpc = int(sys.argv[4])
     else:
         raise Exception("Invalid argument number, please see README.md for tool usage.")
 
@@ -70,12 +83,13 @@ def main_func():
 
     # --- Run -------
     # run the sweeps
-    res = run_q_u_sweep(file_path, n_layers, is_unipartite)
+    res = run_q_u_sweep(file_path, n_layers, is_unipartite, is_in_hpc)
 
-    # save the result to a file
-    name = os.path.splitext(os.path.basename(file_path))[0]# file name
-    ouptut_file = "results/"+ name +"_sweep.csv"
-    res.to_csv(ouptut_file, index=False)
+    if is_in_hpc != 1: # if this is not running in HPC, so each job didnt save the results yet
+        # save the result to a file
+        name = os.path.splitext(os.path.basename(file_path))[0]# file name
+        ouptut_file = "results/"+ name +"_sweep.csv"
+        res.to_csv(ouptut_file, index=False)
 
 # --- Run -------
 if __name__ == "__main__":
