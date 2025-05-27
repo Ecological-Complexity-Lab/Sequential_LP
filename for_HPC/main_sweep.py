@@ -30,7 +30,10 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite, is_in_hpc):
             shutil.copyfile(filepath,new_file_name) 
 
             if is_in_hpc == 1:
-                comd = "qsub run_single.sh "+new_file_name+" "+str(q)+" "+str(u)+" "+str(target)+" "+str(is_unipartite)
+                # give explicit path to qsub command, as it is not recognised when running from another job.
+                # allows running sweep_main on a job, to run a bunch of them.
+                qsub = "/storage/SGE6U8/bin/lx24-amd64/qsub"
+                comd = qsub + " run_single.sh "+new_file_name+" "+str(q)+" "+str(u)+" "+str(target)+" "+str(is_unipartite)
                 print("Running os command: ", comd)
 
                 # run a system command to run as a job
@@ -58,7 +61,7 @@ def main_func():
     file_path = "for_HPC/input/WinfreeYYc_mln.csv"
     n_layers = 7
     is_unipartite = 1
-    is_in_hpc = 1
+    is_in_hpc = 0
 
     # read user input params
     n_args = len(sys.argv)

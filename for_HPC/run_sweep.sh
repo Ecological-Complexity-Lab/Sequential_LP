@@ -9,4 +9,4 @@
 
 # running the python script
 LD_LIBRARY_PATH=/gpfs0/shai/projects/software/Python/Python-3.11/lib/:$LD_LIBRARY_PATH
-/gpfs0/shai/projects/software/Python/Python-3.11/bin/python3.11 main_sweep.py $1 $2 $3
+/gpfs0/shai/projects/software/Python/Python-3.11/bin/python3.11 main_sweep.py $1 $2 $3 $4
