@@ -32,7 +32,7 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite, is_in_hpc):
             if is_in_hpc == 1:
                 # give explicit path to qsub command, as it is not recognised when running from another job.
                 # allows running sweep_main on a job, to run a bunch of them.
-                qsub = "/storage/SGE6U8/bin/lx24-amd64/qsub"
+                qsub = "/storage/SGE6U8/bin/lx24-amd64/qsub" # relevant only for BGU HPC
                 comd = qsub + " run_single.sh "+new_file_name+" "+str(q)+" "+str(u)+" "+str(target)+" "+str(is_unipartite)
                 print("Running os command: ", comd)
 
@@ -44,8 +44,8 @@ def run_q_u_sweep(filepath, n_layers, is_unipartite, is_in_hpc):
                 result_df.loc[nrows] = [name, q, u, auc, auprc, mcc, precision, recall, int(tn), int(fp), int(fn), int(tp)]
                 nrows = nrows+1
 
-            # delete the file
-            os.remove(new_file_name)
+                # delete the file - only when not in HPC, because we dont want to delete before its used
+                os.remove(new_file_name)
     
     return result_df
 
